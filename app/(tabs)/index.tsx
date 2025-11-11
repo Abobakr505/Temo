@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   Dimensions,
   Linking,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Heart, Sparkles, Newspaper } from 'lucide-react-native';
-import { IoFastFoodOutline } from "react-icons/io5";
+import { ChevronRight, Heart, Sparkles, Newspaper, Tag } from 'lucide-react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase, Offer, MenuItem, Category, News } from '@/lib/supabase';
 import { useCart } from '@/contexts/CartContext';
 import { useNavigation } from '@react-navigation/native';
@@ -21,45 +23,50 @@ import Animated, {
   FadeIn,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
+
 const { width } = Dimensions.get('window');
+
 export default function HomeScreen() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [featuredItems, setFeaturedItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [latestNews, setLatestNews] = useState<News[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { addToCart } = useCart();
   const navigation = useNavigation();
+
   useEffect(() => {
     loadData();
   }, []);
+
   const loadData = async () => {
-    const { data: offersData } = await supabase
-      .from('offers')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(3);
-    const { data: featuredData } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('is_featured', true)
-      .eq('is_available', true)
-      .limit(4);
-    const { data: categoriesData } = await supabase
-      .from('categories')
-      .select('*')
-      .order('display_order');
-    const { data: newsData } = await supabase
-      .from('news')
-      .select('*')
-      .eq('is_active', true)
-      .order('published_date', { ascending: false })
-      .limit(3);
-    if (offersData) setOffers(offersData);
-    if (featuredData) setFeaturedItems(featuredData);
-    if (categoriesData) setCategories(categoriesData);
-    if (newsData) setLatestNews(newsData);
+    try {
+      setIsLoading(true);
+      const [offersData, featuredData, categoriesData, newsData] = await Promise.all([
+        supabase.from('offers').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(3),
+        supabase.from('menu_items').select('*').eq('is_featured', true).eq('is_available', true).limit(4),
+        supabase.from('categories').select('*').order('display_order'),
+        supabase.from('news').select('*').eq('is_active', true).order('published_date', { ascending: false }).limit(3)
+      ]);
+
+      if (offersData.data) setOffers(offersData.data);
+      if (featuredData.data) setFeaturedItems(featuredData.data);
+      if (categoriesData.data) setCategories(categoriesData.data);
+      if (newsData.data) setLatestNews(newsData.data);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
   };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ar-SA', {
@@ -68,15 +75,50 @@ export default function HomeScreen() {
       day: 'numeric',
     });
   };
-    const openProductDetails = (item: MenuItem) => {
-      router.push({
-        pathname: `/product/${item.id}`,
-        params: { item: JSON.stringify(item) },
-      });
-    };
-  
+
+  const openProductDetails = (item: MenuItem) => {
+    router.push({
+      pathname: `/product/${item.id}`,
+      params: { item: JSON.stringify(item) },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient
+          colors={['#FF9500', '#FFCC00']}
+          style={styles.loadingBackground}
+        >
+          <Animated.View entering={FadeInDown.duration(600)} style={styles.loadingContent}>
+            <Image
+              source={require('@/assets/images/temo-logo.jpeg')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.heroTitle}>Temo</Text>
+            <Text style={styles.heroSubtitle}>أفضل بطاطس في بني سويف</Text>
+            <ActivityIndicator size="large" color="#FFFFFF" style={styles.loadingSpinner} />
+            <Text style={styles.loadingText}>جاري التحميل...</Text>
+          </Animated.View>
+        </LinearGradient>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#FF9500']}
+          tintColor="#FF9500"
+        />
+      }
+    >
       <LinearGradient
         colors={['#FF9500', '#FFCC00']}
         start={{ x: 0, y: 0 }}
@@ -93,12 +135,17 @@ export default function HomeScreen() {
           <Text style={styles.heroSubtitle}>أفضل بطاطس في بني سويف</Text>
         </Animated.View>
       </LinearGradient>
+
+      {/* العروض الخاصة */}
       {offers.length > 0 && (
         <Animated.View entering={FadeInUp.delay(200).duration(600)} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Sparkles size={24} color="#FF9500" />
-            <Text style={styles.sectionTitle}>العروض الخاصة</Text>
-          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('news')}>
+            <View style={styles.sectionHeader}>
+              <Tag size={24} color="#FF9500" />
+              <Text style={styles.sectionTitle}>العروض الخاصة</Text>
+              <ChevronRight size={20} color="#8E8E93" />
+            </View>
+          </TouchableOpacity>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -122,7 +169,12 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                     <Text style={styles.offerTitle}>{offer.title_ar}</Text>
-                    <Text style={styles.offerDescription}>{offer.description}</Text>
+                    <Text style={styles.offerDescription}>
+                      {offer.description_ar || offer.description}
+                    </Text>
+                    <Text style={styles.offerDate}>
+                      حتى {formatDate(offer.end_date)}
+                    </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </Animated.View>
@@ -130,19 +182,17 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
       )}
+
+      {/* المنتجات المميزة */}
       {featuredItems.length > 0 && (
         <Animated.View entering={FadeInUp.delay(400).duration(600)} style={styles.section}>
-          <TouchableOpacity
-          onPress={() => {
-            navigation.navigate('menu');
-          }}
-        >
-
-          <View style={styles.sectionHeader}>
-            <IoFastFoodOutline size={24} color="#FF9500" />
-            <Text style={styles.sectionTitle}>المنتجات المميزة</Text>
-            <ChevronRight size={20} color="#8E8E93" />
-          </View></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('menu')}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="fast-food-outline" size={24} color="#FF9500" />
+              <Text style={styles.sectionTitle}>المنتجات المميزة</Text>
+              <ChevronRight size={20} color="#8E8E93" />
+            </View>
+          </TouchableOpacity>
           <View style={styles.featuredGrid}>
             {featuredItems.map((item, index) => (
               <Animated.View
@@ -153,7 +203,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   style={styles.featuredItem}
                   onPress={() => openProductDetails(item)}
-                                  activeOpacity={0.8}
+                  activeOpacity={0.8}
                 >
                   <View style={styles.featuredItemImage}>
                     <LinearGradient
@@ -175,9 +225,9 @@ export default function HomeScreen() {
                          style={styles.addToCartButton}
                          onPress={() => addToCart(item)}
                       >
-                      <View style={styles.addButton}>
-                        <Text style={styles.addButtonText}>+</Text>
-                      </View>
+                        <View style={styles.addButton}>
+                          <Text style={styles.addButtonText}>+</Text>
+                        </View>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -187,17 +237,15 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
       )}
+
+      {/* الأقسام */}
       {categories.length > 0 && (
         <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.section}>
-          <TouchableOpacity
-          onPress={() => {
-            navigation.navigate('menu');
-          }}
-        >
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>الأقسام</Text>
-            <ChevronRight size={20} color="#8E8E93" />
-          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('menu')}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>الأقسام</Text>
+              <ChevronRight size={20} color="#8E8E93" />
+            </View>
           </TouchableOpacity>
           <ScrollView
             horizontal
@@ -227,12 +275,17 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
       )}
+
+      {/* الأخبار */}
       {latestNews.length > 0 && (
         <Animated.View entering={FadeInUp.delay(800).duration(600)} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Newspaper size={24} color="#FF9500" />
-            <Text style={styles.sectionTitle}>أحدث الأخبار</Text>
-          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('news')}>
+            <View style={styles.sectionHeader}>
+              <Newspaper size={24} color="#FF9500" />
+              <Text style={styles.sectionTitle}>أحدث الأخبار</Text>
+              <ChevronRight size={20} color="#8E8E93" />
+            </View>
+          </TouchableOpacity>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -266,9 +319,10 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
       )}
+
       <View style={styles.footer}>
         <Text style={styles.footerText}>صنع بحب  </Text>
-         <Heart size={20} color="#FF9500" fill="#FF9500" />
+        <Heart size={20} color="#FF9500" fill="#FF9500" />
         <Text style={styles.footerText}>  من </Text>
         <TouchableOpacity
           onPress={() => {
@@ -281,10 +335,32 @@ export default function HomeScreen() {
     </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9F9F9',
+  },
+  loadingContainer: {
+    flex: 1,
+  },
+  loadingBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingSpinner: {
+    marginTop: 30,
+    marginBottom: 10,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontFamily: 'IBMPlexSansArabic-Medium',
   },
   header: {
     paddingTop: 60,
@@ -352,7 +428,7 @@ const styles = StyleSheet.create({
   },
   offerGradient: {
     padding: 24,
-    minHeight: 160,
+    minHeight: 180,
     justifyContent: 'center',
   },
   discountBadge: {
@@ -381,7 +457,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
     opacity: 0.9,
-    fontFamily: "IBMPlexSansArabic-Medium"
+    fontFamily: "IBMPlexSansArabic-Medium",
+    marginBottom: 8,
+  },
+  offerDate: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.8,
+    fontFamily: "IBMPlexSansArabic-Medium",
   },
   featuredGrid: {
     flexDirection: 'row',

@@ -15,9 +15,9 @@ import {
   Mail,
   Clock,
   Heart,
+  UserStar 
 } from 'lucide-react-native';
-import { FaTiktok } from "react-icons/fa6";
-import { FaUserTie } from "react-icons/fa6";
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -151,7 +151,7 @@ export default function AboutScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.socialGradient}
             >
-              <FaTiktok size={28} color="#FFFFFF" />
+              <Ionicons name="logo-tiktok" size={24} color="#FFFFFF" />
             </LinearGradient>
             <Text style={styles.socialLabel}>تيك توك</Text>
           </TouchableOpacity>
@@ -166,7 +166,7 @@ export default function AboutScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.socialGradient}
             >
-              <FaUserTie  size={28} color="#FFFFFF" />
+              <UserStar   size={28} color="#FFFFFF" />
             </LinearGradient>
             <Text style={styles.socialLabel}> تيمور </Text>
           </TouchableOpacity>

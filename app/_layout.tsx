@@ -1,9 +1,33 @@
-import { Slot, useRouter } from "expo-router";
+import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CartProvider } from "@/contexts/CartContext";
 import { useFonts } from "expo-font";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { useEffect, useState } from "react";
+import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
+import { ActivityIndicator, View } from "react-native";
+
+function RouteProtection() {
+  const segments = useSegments();
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAdminAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAdminGroup = segments[0] === 'admin';
+    
+    if (inAdminGroup && !isAuthenticated) {
+      // Redirect to login if not authenticated and trying to access admin routes
+      router.replace('/admin/login');
+    } else if (isAuthenticated && segments[0] === 'admin' && segments[1] === 'login') {
+      // Redirect to dashboard if already authenticated and trying to access login
+      router.replace('/admin/dashboard');
+    }
+  }, [segments, isAuthenticated, isLoading]);
+
+  return null;
+}
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -15,14 +39,21 @@ export default function RootLayout() {
     "GraphicSchool-Regular": require("../assets/fonts/GraphicSchool-Regular.ttf"),
   });
 
-  const router = useRouter();
-
+  if (!loaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FF9500" />
+      </View>
+    );
+  }
 
   return (
-    <CartProvider>
-      {/* Slot يجب أن يكون موجود دائمًا حتى يتم mount */}
-      <Slot />
-      <StatusBar style="auto" />
-    </CartProvider>
+    <AdminAuthProvider>
+      <CartProvider>
+        <RouteProtection />
+        <Slot />
+        <StatusBar style="auto" />
+      </CartProvider>
+    </AdminAuthProvider>
   );
 }

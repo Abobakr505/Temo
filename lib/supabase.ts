@@ -10,77 +10,128 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-export type Category = {
+// أنواع البيانات
+export interface AdminUser {
   id: string;
-  name: string;
+  email: string;
+  password_hash: string;
   name_ar: string;
-  description: string;
-  image_url: string;
-  display_order: number;
+  role: string;
+  is_active: boolean;
   created_at: string;
-};
+  updated_at: string;
+}
 
-export type MenuItem = {
+export interface Category {
+  id: string;
+  name_ar: string;
+  name_en?: string;
+  description_ar?: string;
+  description_en?: string;
+  display_order: number;
+  is_active: boolean;
+  image_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MenuItem {
   id: string;
   category_id: string;
-  name: string;
   name_ar: string;
-  description: string;
-  description_ar: string;
+  name_en?: string;
+  description_ar?: string;
+  description_en?: string;
   price: number;
-  image_url: string;
   is_available: boolean;
   is_featured: boolean;
   display_order: number;
+  image_url?: string;
+  ingredients_ar?: string;
+  ingredients_en?: string;
+  preparation_time: number;
   created_at: string;
-};
+  updated_at: string;
+  categories?: Category;
+}
 
-export type News = {
+export interface Offer {
   id: string;
-  title: string;
   title_ar: string;
-  content: string;
-  content_ar: string;
-  image_url: string;
-  published_date: string;
-  is_active: boolean;
-  created_at: string;
-};
-
-export type Offer = {
-  id: string;
-  title: string;
-  title_ar: string;
-  description: string;
-  description_ar: string;
+  title_en?: string;
+  description_ar?: string;
+  description_en?: string;
   discount_percentage: number;
-  image_url: string;
   start_date: string;
   end_date: string;
   is_active: boolean;
+  image_url?: string;
   created_at: string;
-};
+  updated_at: string;
+}
 
-export type Order = {
+export interface News {
+  id: string;
+  title_ar: string;
+  title_en?: string;
+  content_ar: string;
+  content_en?: string;
+  published_date: string;
+  is_active: boolean;
+  image_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Order {
   id: string;
   customer_name: string;
   customer_phone: string;
-  customer_address: string;
+  customer_address?: string;
   total_amount: number;
   status: string;
-  notes: string;
+  notes?: string;
   created_at: string;
-};
+  updated_at: string;
+  order_items?: OrderItem[];
+}
 
-export type OrderItem = {
+export interface OrderItem {
   id: string;
   order_id: string;
   menu_item_id: string;
   quantity: number;
   price: number;
   created_at: string;
-};
+  menu_items?: MenuItem;
+}
 
-export type CartItem = MenuItem & {
+export interface CartItem extends MenuItem {
   quantity: number;
-};
+}
+
+// أضف هذه الأنواع إلى ملف supabase.ts
+export interface ReportData {
+  totalRevenue: number;
+  totalOrders: number;
+  totalCustomers: number;
+  averageOrderValue: number;
+  popularProducts: Array<{
+    name_ar: string;
+    total_quantity: number;
+    total_revenue: number;
+  }>;
+  ordersByStatus: Array<{
+    status: string;
+    count: number;
+  }>;
+  revenueByDay: Array<{
+    day: string;
+    revenue: number;
+  }>;
+  categoryStats: Array<{
+    category_name: string;
+    product_count: number;
+    total_orders: number;
+  }>;
+}

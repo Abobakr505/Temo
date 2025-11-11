@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react-native';
@@ -26,6 +28,8 @@ export default function CartScreen() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleSubmitOrder = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
@@ -96,6 +100,28 @@ export default function CartScreen() {
     }
   };
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    // يمكنك إضافة أي تحديث للبيانات هنا إذا لزم الأمر
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient
+          colors={['#FF9500', '#FFCC00']}
+          style={styles.loadingBackground}
+        >
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>جاري التحميل...</Text>
+        </LinearGradient>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -118,12 +144,31 @@ export default function CartScreen() {
         <View style={styles.emptyCart}>
           <ShoppingBag size={80} color="#E5E5EA" strokeWidth={1.5} />
           <Text style={styles.emptyCartText}>سلتك فارغة</Text>
+          <TouchableOpacity
+            style={styles.browseButton}
+            onPress={() => window.location.href = '/menu'}
+          >
+            <LinearGradient
+              colors={['#FF9500', '#FF6B00']}
+              style={styles.browseButtonGradient}
+            >
+              <Text style={styles.browseButtonText}>تصفح المنتجات</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#FF9500']}
+              tintColor="#FF9500"
+            />
+          }
         >
           <View style={styles.cartItems}>
             {cart.map((item, index) => (
@@ -263,9 +308,11 @@ export default function CartScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.checkoutGradient}
             >
-              <Text style={styles.checkoutText}>
-                {isSubmitting ? 'جاري تقديم الطلب...' : 'تقديم الطلب'}
-              </Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.checkoutText}>تقديم الطلب</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
@@ -279,6 +326,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9F9F9',
   },
+  loadingContainer: {
+    flex: 1,
+  },
+  loadingBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontFamily: 'IBMPlexSansArabic-Medium',
+  },
   header: {
     paddingTop: 60,
     paddingBottom: 24,
@@ -286,7 +347,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
-    headerTitle: {
+  headerTitle: {
     fontSize: 48,
     fontWeight: '800',
     color: '#FFFFFF',
@@ -319,6 +380,22 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'center',
+  },
+  browseButton: {
+    marginTop: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+    width: '80%',
+  },
+  browseButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  browseButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: 'IBMPlexSansArabic-Bold',
   },
   content: {
     flex: 1,

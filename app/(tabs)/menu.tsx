@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search } from 'lucide-react-native';
@@ -16,6 +18,8 @@ export default function MenuScreen() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { addToCart } = useCart();
   const router = useRouter();
 
@@ -24,18 +28,27 @@ export default function MenuScreen() {
   }, []);
 
   const loadData = async () => {
-    const { data: categoriesData } = await supabase
-      .from('categories')
-      .select('*')
-      .order('display_order');
-    const { data: menuItemsData } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('is_available', true)
-      .order('display_order');
+    try {
+      setIsLoading(true);
+      
+      const [categoriesData, menuItemsData] = await Promise.all([
+        supabase.from('categories').select('*').order('display_order'),
+        supabase.from('menu_items').select('*').eq('is_available', true).order('display_order')
+      ]);
 
-    if (categoriesData) setCategories(categoriesData);
-    if (menuItemsData) setMenuItems(menuItemsData);
+      if (categoriesData.data) setCategories(categoriesData.data);
+      if (menuItemsData.data) setMenuItems(menuItemsData.data);
+    } catch (error) {
+      console.error('Error loading menu data:', error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
   };
 
   const filteredItems = menuItems.filter((item) => {
@@ -50,6 +63,20 @@ export default function MenuScreen() {
       params: { item: JSON.stringify(item) },
     });
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient
+          colors={['#FF9500', '#FFCC00']}
+          style={styles.loadingBackground}
+        >
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>جاري تحميل المنيو...</Text>
+        </LinearGradient>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -110,10 +137,34 @@ export default function MenuScreen() {
         style={styles.menuScroll}
         contentContainerStyle={styles.menuContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FF9500']}
+            tintColor="#FF9500"
+          />
+        }
       >
         {filteredItems.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>لا توجد عناصر</Text>
+            {searchQuery ? (
+              <>
+                <Search size={80} color="#E5E5EA" />
+                <Text style={styles.emptyStateText}>لا توجد نتائج للبحث</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  حاول البحث بكلمات أخرى
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.placeholderEmoji}>🍽️</Text>
+                <Text style={styles.emptyStateText}>لا توجد عناصر</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  سيتم إضافة المزيد من المنتجات قريباً
+                </Text>
+              </>
+            )}
           </View>
         ) : (
           <View style={styles.menuGrid}>
@@ -175,11 +226,24 @@ export default function MenuScreen() {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9F9F9',
+  },
+  loadingContainer: {
+    flex: 1,
+  },
+  loadingBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontFamily: 'IBMPlexSansArabic-Medium',
   },
   header: {
     paddingTop: 60,
@@ -336,10 +400,19 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyStateText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'center',
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontFamily: 'IBMPlexSansArabic-Medium',
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.7,
   },
 });
