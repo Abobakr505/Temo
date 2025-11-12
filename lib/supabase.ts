@@ -126,3 +126,31 @@ export interface ReportData {
     total_orders: number;
   }>;
 }
+
+export type DrinkCategory = {
+  id: string;
+  name_ar: string;
+  name_en?: string;
+  description_ar?: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type Drink = {
+  id: string;
+  name_ar: string;
+  name_en?: string;
+  description_ar?: string;
+  description_en?: string;
+  price: number;
+  category_id: string;
+  is_available: boolean;
+  is_featured: boolean;
+  display_order: number;
+  image_url?: string;
+  size?: string;
+  calories?: number;
+  created_at: string;
+  drink_categories?: DrinkCategory;
+};

@@ -14,19 +14,23 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCart } from '@/contexts/CartContext';
-import { supabase, Category } from '@/lib/supabase';
+import { supabase, Category, DrinkCategory } from '@/lib/supabase';
 import { Heart, Share2, Clock, Star, ArrowLeft, Minus, Plus, Leaf, BadgeCheck, HeartPlus } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 
+type ProductType = 'food' | 'drink';
+
 export default function ProductDetailsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { addToCart, cart } = useCart();
-  const item = params.item ? JSON.parse(params.item as string) : null;
   
-  const [category, setCategory] = useState<Category | null>(null);
+  const item = params.item ? JSON.parse(params.item as string) : null;
+  const type = (params.type as ProductType) || 'food';
+  
+  const [category, setCategory] = useState<Category | DrinkCategory | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -35,12 +39,13 @@ export default function ProductDetailsScreen() {
     if (item?.category_id) {
       loadCategory();
     }
-  }, [item]);
+  }, [item, type]);
 
   const loadCategory = async () => {
     try {
+      const tableName = type === 'food' ? 'categories' : 'drink_categories';
       const { data, error } = await supabase
-        .from('categories')
+        .from(tableName)
         .select('*')
         .eq('id', item.category_id)
         .single();
@@ -54,8 +59,13 @@ export default function ProductDetailsScreen() {
   };
 
   const handleAddToCart = () => {
+    const cartItem = {
+      ...item,
+      type: type // إضافة النوع للسلة
+    };
+
     for (let i = 0; i < quantity; i++) {
-      addToCart(item);
+      addToCart(cartItem);
     }
     
     Alert.alert(
@@ -86,14 +96,20 @@ export default function ProductDetailsScreen() {
     }
   };
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-  };
 
   const getCartQuantity = () => {
     const cartItem = cart.find(cartItem => cartItem.id === item.id);
     return cartItem ? cartItem.quantity : 0;
   };
+
+  // تحديد الألوان بناءً على النوع
+  const getColors = () => {
+    return type === 'food' 
+      ? { primary: '#FF9500', secondary: '#FFCC00', light: '#FFF5E6' }
+      : { primary: '#007AFF', secondary: '#0056CC', light: '#E6F2FF' };
+  };
+
+  const colors = getColors();
 
   if (!item) {
     return (
@@ -110,14 +126,14 @@ export default function ProductDetailsScreen() {
     <View style={styles.container}>
       {/* الهيدر */}
       <LinearGradient
-        colors={['#FF9500', '#FF9500']}
+        colors={[colors.primary, colors.primary]}
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.primary }]} onPress={() => router.back()} >
             <ArrowLeft size={28} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>تفاصيل </Text>
+          <Text style={styles.headerTitle}>تفاصيل المنتج</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
               <Share2 size={28} color="#FFFFFF" />
@@ -143,18 +159,32 @@ export default function ProductDetailsScreen() {
             />
           ) : (
             <LinearGradient
-              colors={['#FFF5E6', '#FFE6CC']}
+              colors={[colors.light, colors.light]}
               style={styles.imageContainer}
             >
-              <Text style={styles.placeholderEmoji}>🍟</Text>
+              <Text style={styles.placeholderEmoji}>
+                {type === 'food' ? '🍟' : '🥤'}
+              </Text>
             </LinearGradient>
           )}
-          {item.is_featured && (
-            <View style={styles.featuredBadge}>
-              <Star size={16} color="#FFFFFF" fill="#FFFFFF" />
-              <Text style={styles.featuredText}>مميز</Text>
-            </View>
-          )}
+          
+          {/* الشارات */}
+          <View style={styles.badgesContainer}>
+            {item.is_featured && (
+              <View style={[styles.featuredBadge, { backgroundColor: colors.primary }]}>
+                <Star size={16} color="#FFFFFF" fill="#FFFFFF" />
+                <Text style={styles.featuredText}>مميز</Text>
+              </View>
+            )}
+            {type === 'drink' && item.size && (
+              <View style={[styles.sizeBadge, { backgroundColor: colors.secondary }]}>
+                <Text style={styles.sizeText}>
+                  {item.size === 'small' ? 'صغير' : 
+                   item.size === 'medium' ? 'وسط' : 'كبير'}
+                </Text>
+              </View>
+            )}
+          </View>
         </Animated.View>
 
         {/* معلومات المنتج */}
@@ -165,14 +195,35 @@ export default function ProductDetailsScreen() {
           <View style={styles.titleRow}>
             <Text style={styles.name}>{item.name_ar}</Text>
             <View style={styles.priceContainer}>
-              <Text style={styles.price}>{item.price.toFixed(2)}</Text>
-              <Text style={styles.currency}>ج.م</Text>
+              <Text style={[styles.price, { color: colors.primary }]}>{item.price.toFixed(2)}</Text>
+              <Text style={[styles.currency, { color: colors.primary }]}>ج.م</Text>
             </View>
           </View>
 
           {category && (
             <View style={styles.categoryChip}>
               <Text style={styles.categoryText}>{category.name_ar}</Text>
+            </View>
+          )}
+
+          {/* معلومات إضافية للمشروبات */}
+          {type === 'drink' && (
+            <View style={styles.drinkInfo}>
+              {item.calories && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>السعرات الحرارية:</Text>
+                  <Text style={styles.infoValue}>{item.calories} سعرة</Text>
+                </View>
+              )}
+              {item.size && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>الحجم:</Text>
+                  <Text style={styles.infoValue}>
+                    {item.size === 'small' ? 'صغير' : 
+                     item.size === 'medium' ? 'وسط' : 'كبير'}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -188,25 +239,44 @@ export default function ProductDetailsScreen() {
           <View style={styles.featuresSection}>
             <Text style={styles.sectionTitle}>المميزات</Text>
             <View style={styles.featuresGrid}>
-              <View style={styles.featureItem}>
-                <Leaf size={16} color="#34C759" />
-                <Text style={styles.featureText}>مكونات طبيعية</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <BadgeCheck size={16} color="#FF9500" />
-                <Text style={styles.featureText}>طازج يومياً</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <HeartPlus size={16} color="#34C759" />
-                <Text style={styles.featureText}>خالي من المواد الحافظة</Text>
-              </View>
+              {type === 'food' ? (
+                <>
+                  <View style={styles.featureItem}>
+                    <Leaf size={16} color="#34C759" />
+                    <Text style={styles.featureText}>مكونات طبيعية</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <BadgeCheck size={16} color={colors.primary} />
+                    <Text style={styles.featureText}>طازج يومياً</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <HeartPlus size={16} color="#34C759" />
+                    <Text style={styles.featureText}>خالي من المواد الحافظة</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.featureItem}>
+                    <Leaf size={16} color="#34C759" />
+                    <Text style={styles.featureText}>طبيعي 100%</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <BadgeCheck size={16} color={colors.primary} />
+                    <Text style={styles.featureText}>منعش</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <HeartPlus size={16} color="#34C759" />
+                    <Text style={styles.featureText}>صحي</Text>
+                  </View>
+                </>
+              )}
             </View>
           </View>
 
           {/* الكمية في السلة */}
           {getCartQuantity() > 0 && (
-            <View style={styles.cartInfo}>
-              <Text style={styles.cartInfoText}>
+            <View style={[styles.cartInfo, { backgroundColor: colors.light }]}>
+              <Text style={[styles.cartInfoText, { color: colors.primary }]}>
                 لديك {getCartQuantity()} من هذا المنتج في السلة
               </Text>
             </View>
@@ -227,7 +297,7 @@ export default function ProductDetailsScreen() {
               onPress={() => setQuantity(Math.max(1, quantity - 1))}
               disabled={quantity <= 1}
             >
-              <Minus size={20} color={quantity <= 1 ? '#C7C7CC' : '#FF9500'} />
+              <Minus size={20} color={quantity <= 1 ? '#C7C7CC' : colors.primary} />
             </TouchableOpacity>
             
             <Text style={styles.quantity}>{quantity}</Text>
@@ -236,7 +306,7 @@ export default function ProductDetailsScreen() {
               style={styles.quantityButton}
               onPress={() => setQuantity(quantity + 1)}
             >
-              <Plus size={20} color="#FF9500" />
+              <Plus size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -248,7 +318,7 @@ export default function ProductDetailsScreen() {
             disabled={isLoading}
           >
             <LinearGradient
-              colors={['#FF9500', '#FF9500']}
+              colors={[colors.primary, colors.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.addButtonGradient}
@@ -291,6 +361,16 @@ const styles = StyleSheet.create({
     fontFamily: 'IBMPlexSansArabic-Medium',
     marginBottom: 20,
   },
+  backButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'IBMPlexSansArabic-Medium',
+  },
   header: {
     paddingTop: 60,
     paddingBottom: 20,
@@ -304,14 +384,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 42,
+    fontSize: 24,
     fontWeight: '800',
     color: '#FFFFFF',
-    marginBottom: 8,
     fontFamily: 'GraphicSchool-Regular',
-  },
-  backButton: {
-    padding: 8,
   },
   headerActions: {
     flexDirection: 'row',
@@ -342,13 +418,16 @@ const styles = StyleSheet.create({
   placeholderEmoji: { 
     fontSize: 100 
   },
-  featuredBadge: {
+  badgesContainer: {
     position: 'absolute',
     top: 16,
     left: 16,
     flexDirection: 'row',
+    gap: 8,
+  },
+  featuredBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF9500',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -360,23 +439,35 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
+  sizeBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  sizeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'IBMPlexSansArabic-Medium',
+  },
   detailsSection: {
     padding: 20,
     paddingTop: 0,
   },
   titleRow: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   name: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#1C1C1E',
     flex: 1,
     textAlign: 'right',
     fontFamily: 'IBMPlexSansArabic-Bold',
-    lineHeight: 34,
+    lineHeight: 30,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -386,13 +477,11 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
   currency: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Medium',
     marginRight: 4,
   },
@@ -408,6 +497,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#8E8E93',
+    fontFamily: 'IBMPlexSansArabic-Medium',
+  },
+  drinkInfo: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontFamily: 'IBMPlexSansArabic-Medium',
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   sectionTitle: {
@@ -455,14 +572,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cartInfo: {
-    backgroundColor: '#E3F2FD',
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
   },
   cartInfoText: {
     fontSize: 14,
-    color: '#1976D2',
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'center',
   },

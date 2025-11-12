@@ -59,7 +59,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     { name: 'index', Icon: Home, label: 'الرئيسية' },
     { name: 'menu', Icon: ClipboardList, label: 'المنيو' },
     { name: 'cart', Icon: ShoppingCart, label: 'السلة', badge: cartItemsCount },
-    { name: 'news', Icon: Newspaper, label:'الأحداث' },
+    { name: 'events', Icon: Newspaper, label:'الأحداث' },
     { name: 'about', Icon: BadgeInfo, label: 'من نحن' },
   ];
 
