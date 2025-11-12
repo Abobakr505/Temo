@@ -21,6 +21,7 @@ import Animated, {
   FadeInRight,
   FadeOutLeft,
 } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 export default function CartScreen() {
   const { cart, updateQuantity, removeFromCart, clearCart, getTotalPrice, getTotalItems, isLoading } = useCart();
@@ -49,94 +50,93 @@ export default function CartScreen() {
   };
 
   const handleSubmitOrder = async () => {
-    if (!customerName.trim() || !customerPhone.trim()) {
-      Alert.alert(
-        'معلومات مفقودة',
-        'يرجى إدخال اسمك ورقم هاتفك'
-      );
-      return;
-    }
+  if (!customerName.trim() || !customerPhone.trim()) {
+    Toast.show({
+      type: 'error',
+      text1: 'معلومات مفقودة ⚠️',
+      text2: 'يرجى إدخال اسمك ورقم هاتفك.',
+    });
+    return;
+  }
 
-    if (cart.length === 0) {
-      Alert.alert('سلة فارغة', 'يرجى إضافة عناصر إلى سلتك أولاً');
-      return;
-    }
+  if (cart.length === 0) {
+    Toast.show({
+      type: 'info',
+      text1: 'السلة فارغة 🛒',
+      text2: 'يرجى إضافة عناصر إلى السلة أولاً.',
+    });
+    return;
+  }
 
-    // التحقق من صحة رقم الهاتف
-    const phoneRegex = /^01[0-2,5]{1}[0-9]{8}$/;
-    if (!phoneRegex.test(customerPhone)) {
-      Alert.alert(
-        'رقم هاتف غير صحيح',
-        'يرجى إدخال رقم هاتف مصري صحيح (11 رقم)'
-      );
-      return;
-    }
+  // التحقق من صحة رقم الهاتف
+  const phoneRegex = /^01[0-2,5]{1}[0-9]{8}$/;
+  if (!phoneRegex.test(customerPhone)) {
+    Toast.show({
+      type: 'error',
+      text1: 'رقم هاتف غير صحيح ☎️',
+      text2: 'يرجى إدخال رقم هاتف مصري صحيح مكون من 11 رقمًا.',
+    });
+    return;
+  }
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
 
-    try {
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          customer_address: customerAddress,
-          total_amount: getTotalPrice(),
-          status: 'pending',
-          notes: notes,
-          items_count: getTotalItems(),
-        })
-        .select()
-        .single();
+  try {
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        customer_address: customerAddress,
+        total_amount: getTotalPrice(),
+        status: 'pending',
+        notes: notes,
+        items_count: getTotalItems(),
+      })
+      .select()
+      .single();
 
-      if (orderError) throw orderError;
+    if (orderError) throw orderError;
 
-      // إعداد عناصر الطلب
-      const orderItems = cart.map((item) => ({
-        order_id: orderData.id,
-        menu_item_id: item.id,
-        product_name: item.name_ar,
-        product_type: item.type,
-        quantity: item.quantity,
-        price: item.price,
-        total_price: item.price * item.quantity,
-      }));
+    // إدخال عناصر الطلب
+    const orderItems = cart.map((item) => ({
+      order_id: orderData.id,
+      menu_item_id: item.id,
+      product_name: item.name_ar,
+      product_type: item.type,
+      quantity: item.quantity,
+      price: item.price,
+      total_price: item.price * item.quantity,
+    }));
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+    if (itemsError) throw itemsError;
 
-      // حفظ بيانات العميل للاستخدام المستقبلي
-      // await AsyncStorage.setItem('customerName', customerName);
-      // await AsyncStorage.setItem('customerPhone', customerPhone);
+    Toast.show({
+      type: 'success',
+      text1: 'تم إرسال الطلب بنجاح 🎉',
+      text2: `رقم طلبك: #${orderData.id} — سنقوم بالاتصال بك لتأكيد الطلب.`,
+    });
 
-      Alert.alert(
-        'تم تقديم الطلب بنجاح! 🎉',
-        `رقم طلبك: #${orderData.id}\nسيتم الاتصال بك على ${customerPhone} لتأكيد الطلب`,
-        [
-          {
-            text: 'حسناً',
-            onPress: () => {
-              clearCart();
-              setCustomerAddress('');
-              setNotes('');
-              // الاحتفاظ بالاسم والهاتف للطلبات القادمة
-            },
-          },
-        ]
-      );
-    } catch (error: any) {
-      console.error('خطأ في الطلب:', error);
-      Alert.alert(
-        'خطأ', 
-        error.message || 'فشل في تقديم الطلب. يرجى المحاولة مرة أخرى.'
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    clearCart();
+    setCustomerAddress('');
+    setNotes('');
+
+  } catch (error: any) {
+    console.error('خطأ في الطلب:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'حدث خطأ 😢',
+      text2: error.message || 'فشل في تقديم الطلب. يرجى المحاولة مرة أخرى.',
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -482,7 +482,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 48,
-    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
@@ -493,7 +492,6 @@ const styles = StyleSheet.create({
   },
   itemCount: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#FFFFFF',
     opacity: 0.9,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -507,7 +505,6 @@ const styles = StyleSheet.create({
   },
   emptyCartText: {
     fontSize: 24,
-    fontWeight: '700',
     color: '#8E8E93',
     marginTop: 24,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -538,7 +535,6 @@ const styles = StyleSheet.create({
   },
   browseButtonText: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -587,7 +583,6 @@ const styles = StyleSheet.create({
   },
   typeText: {
     fontSize: 10,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -597,7 +592,6 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 4,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -605,7 +599,6 @@ const styles = StyleSheet.create({
   },
   itemPrice: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
@@ -643,7 +636,6 @@ const styles = StyleSheet.create({
   },
   quantity: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#1C1C1E',
     paddingHorizontal: 16,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -664,7 +656,6 @@ const styles = StyleSheet.create({
   },
   clearCartText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#FF3B30',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -681,7 +672,6 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -698,7 +688,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
@@ -733,7 +722,6 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 16,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -747,13 +735,11 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   summaryValue: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -764,13 +750,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
   totalValue: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -793,7 +777,6 @@ const styles = StyleSheet.create({
   },
   checkoutText: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 4,

@@ -28,6 +28,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from "expo-file-system/legacy";
+import Toast from 'react-native-toast-message';
 
 type Category = {
   id: string;
@@ -92,89 +93,124 @@ export default function AdminProductsScreen() {
     }
   };
 
-  const loadProducts = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select(`
-          *,
-          categories (
-            name_ar
-          )
-        `)
-        .order('display_order');
+// 🔹 تحميل المنتجات
+const loadProducts = async () => {
+  try {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select(`
+        *,
+        categories (
+          name_ar
+        )
+      `)
+      .order('display_order');
 
-      if (error) {
-        console.error('Error loading products:', error);
-        Alert.alert('خطأ', 'فشل في تحميل المنتجات');
-      } else {
-        setProducts(data || []);
-        console.log('Products loaded:', data?.length);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('خطأ', 'فشل في تحميل المنتجات');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('display_order');
-
-      if (error) {
-        console.error('Error loading categories:', error);
-        Alert.alert('خطأ', 'فشل في تحميل الفئات');
-      } else {
-        setCategories(data || []);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('خطأ', 'فشل في تحميل الفئات');
-    }
-  };
-
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+    if (error) {
+      console.error('Error loading products:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'خطأ',
+        text2: 'فشل في تحميل المنتجات',
+        position: 'bottom',
       });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-        await uploadImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('خطأ', 'فشل في اختيار الصورة');
+    } else {
+      setProducts(data || []);
+      console.log('Products loaded:', data?.length);
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحميل المنتجات',
+      position: 'bottom',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  const takePhoto = async () => {
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+// 🔹 تحميل الفئات
+const loadCategories = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('display_order');
+
+    if (error) {
+      console.error('Error loading categories:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'خطأ',
+        text2: 'فشل في تحميل الفئات',
+        position: 'bottom',
       });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-        await uploadImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error taking photo:', error);
-      Alert.alert('خطأ', 'فشل في التقاط الصورة');
+    } else {
+      setCategories(data || []);
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحميل الفئات',
+      position: 'bottom',
+    });
+  }
+};
+
+// 🔹 اختيار صورة من المعرض
+const pickImage = async () => {
+  try {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
+      await uploadImage(result.assets[0].uri);
+    }
+  } catch (error) {
+    console.error('Error picking image:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في اختيار الصورة',
+      position: 'bottom',
+    });
+  }
+};
+
+// 🔹 التقاط صورة بالكاميرا
+const takePhoto = async () => {
+  try {
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
+      await uploadImage(result.assets[0].uri);
+    }
+  } catch (error) {
+    console.error('Error taking photo:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في التقاط الصورة',
+      position: 'bottom',
+    });
+  }
+};
+
 
   const uploadImage = async (imageUri: string) => {
   try {
@@ -184,11 +220,9 @@ export default function AdminProductsScreen() {
     const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
     const filePath = fileName;
 
-    // 🔹 قراءة الملف كـ Blob (يعمل على الويب والجوال)
     const response = await fetch(imageUri);
     const blob = await response.blob();
 
-    // 🔹 رفع الصورة إلى Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("product-images")
       .upload(filePath, blob, {
@@ -197,12 +231,8 @@ export default function AdminProductsScreen() {
         upsert: false,
       });
 
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
-    // 🔹 الحصول على الرابط العام للصورة
     const { data: urlData } = supabase.storage
       .from("product-images")
       .getPublicUrl(filePath);
@@ -210,21 +240,27 @@ export default function AdminProductsScreen() {
     if (urlData?.publicUrl) {
       setFormData((prev) => ({ ...prev, image_url: urlData.publicUrl }));
       setSelectedImage(urlData.publicUrl);
-      Alert.alert("نجاح", "تم رفع الصورة بنجاح");
-      console.log("✅ Image uploaded:", urlData.publicUrl);
+      Toast.show({
+        type: 'success',
+        text1: 'تم بنجاح 🎉',
+        text2: 'تم رفع الصورة بنجاح',
+        position: 'bottom',
+      });
     } else {
       throw new Error("لم يتم إنشاء رابط عام للصورة");
     }
-
   } catch (error: any) {
     console.error("Error uploading image:", error);
-    Alert.alert("خطأ", `فشل في رفع الصورة: ${error.message}`);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: `فشل في رفع الصورة: ${error.message}`,
+      position: 'bottom',
+    });
   } finally {
     setUploadingImage(false);
   }
 };
-
-
   const removeImage = async () => {
     if (formData.image_url) {
       try {
@@ -253,54 +289,71 @@ export default function AdminProductsScreen() {
     (product.name_en && product.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleSaveProduct = async () => {
-    if (!formData.name_ar || !formData.price || !formData.category_id) {
-      Alert.alert('خطأ', 'يرجى ملء جميع الحقول المطلوبة');
-      return;
+const handleSaveProduct = async () => {
+  if (!formData.name_ar || !formData.price || !formData.category_id) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'يرجى ملء جميع الحقول المطلوبة',
+      position: 'bottom',
+    });
+    return;
+  }
+
+  setFormLoading(true);
+  try {
+    const productData = {
+      name_ar: formData.name_ar,
+      description_ar: formData.description_ar,
+      price: parseFloat(formData.price),
+      category_id: formData.category_id,
+      is_available: formData.is_available,
+      is_featured: formData.is_featured,
+      display_order: parseInt(formData.display_order) || 0,
+      image_url: formData.image_url,
+    };
+
+    if (editingProduct) {
+      const { error } = await supabase
+        .from('menu_items')
+        .update(productData)
+        .eq('id', editingProduct.id);
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'تم بنجاح 🎉',
+        text2: 'تم تحديث المنتج بنجاح',
+        position: 'bottom',
+      });
+    } else {
+      const { error } = await supabase
+        .from('menu_items')
+        .insert([productData]);
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'تم بنجاح 🎉',
+        text2: 'تم إضافة المنتج بنجاح',
+        position: 'bottom',
+      });
     }
 
-    setFormLoading(true);
-    try {
-      const productData = {
-        name_ar: formData.name_ar,
-        description_ar: formData.description_ar,
-        price: parseFloat(formData.price),
-        category_id: formData.category_id,
-        is_available: formData.is_available,
-        is_featured: formData.is_featured,
-        display_order: parseInt(formData.display_order) || 0,
-        image_url: formData.image_url,
-      };
-
-      console.log('Saving product with data:', productData);
-
-      if (editingProduct) {
-        const { error } = await supabase
-          .from('menu_items')
-          .update(productData)
-          .eq('id', editingProduct.id);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم تحديث المنتج بنجاح');
-      } else {
-        const { error } = await supabase
-          .from('menu_items')
-          .insert([productData]);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم إضافة المنتج بنجاح');
-      }
-
-      resetForm();
-      loadProducts();
-    } catch (error) {
-      console.error('Error saving product:', error);
-      Alert.alert('خطأ', `فشل في حفظ المنتج: ${error.message}`);
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
+    resetForm();
+    loadProducts();
+  } catch (error: any) {
+    console.error('Error saving product:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: `فشل في حفظ المنتج: ${error.message}`,
+      position: 'bottom',
+    });
+  } finally {
+    setFormLoading(false);
+  }
+};
   const handleEdit = (product: MenuItem) => {
     setEditingProduct(product);
     setFormData({
@@ -317,45 +370,52 @@ export default function AdminProductsScreen() {
     setIsModalVisible(true);
   };
 
-  const handleDelete = async (product: MenuItem) => {
-    Alert.alert(
-      'حذف المنتج',
-      `هل أنت متأكد من حذف ${product.name_ar}؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'حذف',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // حذف الصورة من Storage إذا كانت موجودة
-              if (product.image_url) {
-                const fileName = product.image_url.split('/').pop();
-                if (fileName) {
-                  await supabase.storage
-                    .from('product-images')
-                    .remove([fileName]);
-                }
+const handleDelete = async (product: MenuItem) => {
+  Alert.alert(
+    'حذف المنتج',
+    `هل أنت متأكد من حذف ${product.name_ar}؟`,
+    [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'حذف',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            if (product.image_url) {
+              const fileName = product.image_url.split('/').pop();
+              if (fileName) {
+                await supabase.storage.from('product-images').remove([fileName]);
               }
-
-              const { error } = await supabase
-                .from('menu_items')
-                .delete()
-                .eq('id', product.id);
-
-              if (error) throw error;
-              Alert.alert('نجاح', 'تم حذف المنتج بنجاح');
-              loadProducts();
-            } catch (error) {
-              console.error('Error deleting product:', error);
-              Alert.alert('خطأ', 'فشل في حذف المنتج');
             }
-          },
-        },
-      ]
-    );
-  };
 
+            const { error } = await supabase
+              .from('menu_items')
+              .delete()
+              .eq('id', product.id);
+            if (error) throw error;
+
+            Toast.show({
+              type: 'success',
+              text1: 'تم بنجاح 🎉',
+              text2: 'تم حذف المنتج بنجاح',
+              position: 'bottom',
+            });
+
+            loadProducts();
+          } catch (error) {
+            console.error('Error deleting product:', error);
+            Toast.show({
+              type: 'error',
+              text1: 'خطأ',
+              text2: 'فشل في حذف المنتج',
+              position: 'bottom',
+            });
+          }
+        },
+      },
+    ]
+  );
+};
   const resetForm = () => {
     setFormData({
       name_ar: '',
@@ -690,7 +750,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
    fontFamily: 'GraphicSchool-Regular',
 
@@ -785,7 +844,6 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     textAlign: 'right',
     marginBottom: 4,
@@ -800,7 +858,6 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FF9500',
     textAlign: 'right',
     marginBottom: 4,
@@ -813,7 +870,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     color: '#34C759',
-    fontWeight: '600',
     fontFamily: 'IBMPlexSansArabic-Medium'
   },
   statusDisabled: {
@@ -822,7 +878,6 @@ const styles = StyleSheet.create({
   featuredText: {
     fontSize: 12,
     color: '#FF9500',
-    fontWeight: '600',
     fontFamily: 'IBMPlexSansArabic-Medium'
   },
   productActions: {
@@ -851,7 +906,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
     textAlign: 'center',
@@ -922,11 +976,9 @@ const styles = StyleSheet.create({
   imageButtonText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '600',
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 8,
     textAlign: 'right',
@@ -970,7 +1022,6 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium'
   },
@@ -985,7 +1036,6 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium'
   },
@@ -1024,7 +1074,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#8E8E93',
   },
   saveButton: {
@@ -1036,7 +1085,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium'
   },

@@ -221,14 +221,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 42,
-    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 8,
     fontFamily: 'GraphicSchool-Regular',
   },
   headerSubtitle: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#FFFFFF',
     opacity: 0.95,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -240,7 +238,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 24,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 16,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -282,7 +279,6 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#8E8E93',
     marginBottom: 6,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -290,7 +286,6 @@ const styles = StyleSheet.create({
   },
   contactValue: {
     fontSize: 15,
-    fontWeight: '700',
     color: '#1C1C1E',
     textAlign: 'center',
     marginBottom: 2,
@@ -298,7 +293,6 @@ const styles = StyleSheet.create({
   },
   contactValueSmall: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#8E8E93',
     textAlign: 'center',
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -326,7 +320,6 @@ const styles = StyleSheet.create({
   },
   socialLabel: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },

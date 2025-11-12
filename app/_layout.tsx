@@ -6,7 +6,7 @@ import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { useEffect, useState } from "react";
 import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
 import { ActivityIndicator, View } from "react-native";
-
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 function RouteProtection() {
   const segments = useSegments();
   const router = useRouter();
@@ -28,6 +28,83 @@ function RouteProtection() {
 
   return null;
 }
+  const toastConfig = {
+    success: (props) => (
+      <BaseToast
+        {...props}
+        style={{
+          borderLeftColor: "#22c55e",
+          borderLeftWidth: 6,
+          backgroundColor: "#f0fdf4",
+          borderRadius: 14,
+        }}
+        contentContainerStyle={{ paddingHorizontal: 15 }}
+        text1Style={{
+          fontSize: 16,
+          color: "#166534",
+          textAlign: "right",
+          fontFamily: "IBMPlexSansArabic-Bold",
+
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: "#15803d",
+          textAlign: "right",
+          fontFamily: "IBMPlexSansArabic-Medium",
+
+        }}
+      />
+    ),
+
+    error: (props) => (
+      <ErrorToast
+        {...props}
+        style={{
+          borderLeftColor: "#ef4444",
+          borderLeftWidth: 6,
+          backgroundColor: "#fef2f2",
+          borderRadius: 14,
+        }}
+        text1Style={{
+          fontSize: 16,
+          color: "#991b1b",
+          textAlign: "right",
+          fontFamily: "IBMPlexSansArabic-Bold",
+
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: "#b91c1c",
+          textAlign: "right",
+          fontFamily: "IBMPlexSansArabic-Medium",
+
+        }}
+      />
+    ),
+
+    info: (props) => (
+      <BaseToast
+        {...props}
+        style={{
+          borderLeftColor: "#3b82f6",
+          borderLeftWidth: 6,
+          backgroundColor: "#eff6ff",
+          borderRadius: 14,
+        }}
+        text1Style={{
+          fontSize: 16,
+          textAlign: "right",
+          fontFamily: "IBMPlexSansArabic-Bold",
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: "#1d4ed8",
+          textAlign: "right",
+          fontFamily: "IBMPlexSansArabic-Medium",
+        }}
+      />
+    ),
+  };
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -48,10 +125,12 @@ export default function RootLayout() {
   }
 
   return (
+    
     <AdminAuthProvider>
       <CartProvider>
         <RouteProtection />
         <Slot />
+        <Toast config={toastConfig} />
         <StatusBar style="auto" />
       </CartProvider>
     </AdminAuthProvider>

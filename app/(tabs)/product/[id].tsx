@@ -17,6 +17,7 @@ import { useCart } from '@/contexts/CartContext';
 import { supabase, Category, DrinkCategory } from '@/lib/supabase';
 import { Heart, Share2, Clock, Star, ArrowLeft, Minus, Plus, Leaf, BadgeCheck, HeartPlus } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 
@@ -59,30 +60,25 @@ export default function ProductDetailsScreen() {
   };
 
   const handleAddToCart = () => {
-    const cartItem = {
-      ...item,
-      type: type // إضافة النوع للسلة
-    };
-
-    for (let i = 0; i < quantity; i++) {
-      addToCart(cartItem);
-    }
-    
-    Alert.alert(
-      'تم الإضافة إلى السلة',
-      `تم إضافة ${quantity} من ${item.name_ar} إلى السلة`,
-      [
-        {
-          text: 'متابعة التسوق',
-          style: 'cancel',
-        },
-        {
-          text: 'عرض السلة',
-          onPress: () => router.push('/cart'),
-        },
-      ]
-    );
+  const cartItem = {
+    ...item,
+    type: type // إضافة النوع للسلة
   };
+
+  for (let i = 0; i < quantity; i++) {
+    addToCart(cartItem);
+  }
+
+  // استبدال Alert بـ Toast
+  Toast.show({
+    type: 'success',
+    text1: 'تم الإضافة إلى السلة 🎉',
+    text2: `تم إضافة ${quantity} من ${item.name_ar} إلى السلة`,
+    position: 'top',
+    visibilityTime: 2500,
+    onPress: () => router.push('/cart'), // لو ضغط المستخدم ينقله للسلة
+  });
+};
 
   const handleShare = async () => {
     try {
@@ -385,7 +381,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
   },
@@ -435,7 +430,6 @@ const styles = StyleSheet.create({
   },
   featuredText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -446,7 +440,6 @@ const styles = StyleSheet.create({
   },
   sizeText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -462,7 +455,6 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 24,
-    fontWeight: '700',
     color: '#1C1C1E',
     flex: 1,
     textAlign: 'right',
@@ -476,12 +468,10 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 28,
-    fontWeight: '800',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
   currency: {
     fontSize: 16,
-    fontWeight: '600',
     fontFamily: 'IBMPlexSansArabic-Medium',
     marginRight: 4,
   },
@@ -495,7 +485,6 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -523,13 +512,11 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -600,7 +587,6 @@ const styles = StyleSheet.create({
   },
   quantityLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -626,7 +612,6 @@ const styles = StyleSheet.create({
   },
   quantity: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#1C1C1E',
     paddingHorizontal: 16,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -652,7 +637,6 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#FFF',
     fontSize: 18,
-    fontWeight: '700',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 2,
   },

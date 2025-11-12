@@ -28,6 +28,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import Toast from 'react-native-toast-message';
 
 export default function AdminDrinkCategoriesScreen() {
   const [categories, setCategories] = useState<DrinkCategory[]>([]);
@@ -53,93 +54,121 @@ export default function AdminDrinkCategoriesScreen() {
     requestPermissions();
   }, []);
 
-  const requestPermissions = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-    
-    if (status !== 'granted' || cameraStatus.status !== 'granted') {
-      Alert.alert('خطأ في الصلاحيات', 'يجب منح صلاحية الوصول إلى الصور والكاميرا');
+const requestPermissions = async () => {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+  
+  if (status !== 'granted' || cameraStatus.status !== 'granted') {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ في الصلاحيات',
+      text2: 'يجب منح صلاحية الوصول إلى الصور والكاميرا',
+      position: 'top',
+    });
+  }
+};
+
+const loadCategories = async () => {
+  try {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('drink_categories')
+      .select('*')
+      .order('display_order');
+
+    if (error) {
+      console.error('Error loading drink categories:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'خطأ',
+        text2: 'فشل في تحميل فئات المشروبات',
+        position: 'top',
+      });
+    } else {
+      setCategories(data || []);
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحميل فئات المشروبات',
+      position: 'top',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  const loadCategories = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('drink_categories')
-        .select('*')
-        .order('display_order');
 
-      if (error) {
-        console.error('Error loading drink categories:', error);
-        Alert.alert('خطأ', 'فشل في تحميل فئات المشروبات');
-      } else {
-        setCategories(data || []);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('خطأ', 'فشل في تحميل فئات المشروبات');
-    } finally {
-      setIsLoading(false);
+const pickImage = async () => {
+  try {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
+      await uploadImage(result.assets[0].uri);
     }
-  };
+  } catch (error) {
+    console.error('Error picking image:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في اختيار الصورة',
+      position: 'top',
+    });
+  }
+};
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+
+ const uploadImage = async (imageUri: string) => {
+  try {
+    setUploadingImage(true);
+    const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+    const filePath = fileName;
+
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('drink-category-images')
+      .upload(filePath, blob, {
+        contentType: `image/${fileExt}`,
+        cacheControl: '3600',
+        upsert: false,
       });
 
-      if (!result.canceled && result.assets && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-        await uploadImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('خطأ', 'فشل في اختيار الصورة');
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from('drink-category-images')
+      .getPublicUrl(filePath);
+
+    if (urlData?.publicUrl) {
+      setFormData((prev) => ({ ...prev, image_url: urlData.publicUrl }));
+      setSelectedImage(urlData.publicUrl);
+    } else {
+      throw new Error('لم يتم إنشاء رابط عام للصورة');
     }
-  };
+  } catch (error: any) {
+    console.error('Error uploading image:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: `فشل في رفع الصورة: ${error.message}`,
+      position: 'top',
+    });
+  } finally {
+    setUploadingImage(false);
+  }
+};
 
-  const uploadImage = async (imageUri: string) => {
-    try {
-      setUploadingImage(true);
-      const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-      const filePath = fileName;
-
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('drink-category-images')
-        .upload(filePath, blob, {
-          contentType: `image/${fileExt}`,
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('drink-category-images')
-        .getPublicUrl(filePath);
-
-      if (urlData?.publicUrl) {
-        setFormData((prev) => ({ ...prev, image_url: urlData.publicUrl }));
-        setSelectedImage(urlData.publicUrl);
-      } else {
-        throw new Error('لم يتم إنشاء رابط عام للصورة');
-      }
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      Alert.alert('خطأ', `فشل في رفع الصورة: ${error.message}`);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
 
   const removeImage = async () => {
     if (formData.image_url) {
@@ -164,47 +193,69 @@ export default function AdminDrinkCategoriesScreen() {
   );
 
   const handleSaveCategory = async () => {
-    if (!formData.name_ar) {
-      Alert.alert('خطأ', 'يرجى إدخال اسم الفئة بالعربية');
-      return;
+  if (!formData.name_ar) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'يرجى إدخال اسم الفئة بالعربية',
+      position: 'top',
+    });
+    return;
+  }
+
+  setFormLoading(true);
+  try {
+    const categoryData = {
+      name_ar: formData.name_ar,
+      description_ar: formData.description_ar,
+      display_order: parseInt(formData.display_order) || 0,
+      is_active: formData.is_active,
+      image_url: formData.image_url,
+    };
+
+    if (editingCategory) {
+      const { error } = await supabase
+        .from('drink_categories')
+        .update(categoryData)
+        .eq('id', editingCategory.id);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'نجاح',
+        text2: 'تم تحديث الفئة بنجاح',
+        position: 'top',
+      });
+    } else {
+      const { error } = await supabase
+        .from('drink_categories')
+        .insert([categoryData]);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'نجاح',
+        text2: 'تم إضافة الفئة بنجاح',
+        position: 'top',
+      });
     }
 
-    setFormLoading(true);
-    try {
-      const categoryData = {
-        name_ar: formData.name_ar,
-        description_ar: formData.description_ar,
-        display_order: parseInt(formData.display_order) || 0,
-        is_active: formData.is_active,
-        image_url: formData.image_url,
-      };
-
-      if (editingCategory) {
-        const { error } = await supabase
-          .from('drink_categories')
-          .update(categoryData)
-          .eq('id', editingCategory.id);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم تحديث الفئة بنجاح');
-      } else {
-        const { error } = await supabase
-          .from('drink_categories')
-          .insert([categoryData]);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم إضافة الفئة بنجاح');
-      }
-
-      resetForm();
-      loadCategories();
-    } catch (error) {
-      console.error('Error saving drink category:', error);
-      Alert.alert('خطأ', 'فشل في حفظ الفئة');
-    } finally {
-      setFormLoading(false);
-    }
-  };
+    resetForm();
+    loadCategories();
+  } catch (error) {
+    console.error('Error saving drink category:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في حفظ الفئة',
+      position: 'top',
+    });
+  } finally {
+    setFormLoading(false);
+  }
+};
 
   const handleEdit = (category: DrinkCategory) => {
     setEditingCategory(category);
@@ -219,43 +270,52 @@ export default function AdminDrinkCategoriesScreen() {
     setIsModalVisible(true);
   };
 
-  const handleDelete = async (category: DrinkCategory) => {
-    Alert.alert(
-      'حذف الفئة',
-      `هل أنت متأكد من حذف ${category.name_ar}؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'حذف',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (category.image_url) {
-                const fileName = category.image_url.split('/').pop();
-                if (fileName) {
-                  await supabase.storage
-                    .from('drink-category-images')
-                    .remove([fileName]);
-                }
-              }
+const handleDelete = async (category: DrinkCategory) => {
+  Toast.show({
+    type: 'info',
+    text1: 'حذف الفئة',
+    text2: `اضغط هنا لتأكيد حذف ${category.name_ar}`,
+    position: 'top',
+    visibilityTime: 4000,
+    onPress: async () => {
+      try {
+        if (category.image_url) {
+          const fileName = category.image_url.split('/').pop();
+          if (fileName) {
+            await supabase.storage
+              .from('drink-category-images')
+              .remove([fileName]);
+          }
+        }
 
-              const { error } = await supabase
-                .from('drink_categories')
-                .delete()
-                .eq('id', category.id);
+        const { error } = await supabase
+          .from('drink_categories')
+          .delete()
+          .eq('id', category.id);
 
-              if (error) throw error;
-              Alert.alert('نجاح', 'تم حذف الفئة بنجاح');
-              loadCategories();
-            } catch (error) {
-              console.error('Error deleting drink category:', error);
-              Alert.alert('خطأ', 'فشل في حذف الفئة');
-            }
-          },
-        },
-      ]
-    );
-  };
+        if (error) throw error;
+
+        Toast.show({
+          type: 'success',
+          text1: 'نجاح',
+          text2: 'تم حذف الفئة بنجاح',
+          position: 'top',
+        });
+
+        loadCategories();
+      } catch (error) {
+        console.error('Error deleting drink category:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'خطأ',
+          text2: 'فشل في حذف الفئة',
+          position: 'top',
+        });
+      }
+    },
+  });
+};
+
 
   const resetForm = () => {
     setFormData({
@@ -477,7 +537,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
   },
@@ -569,7 +628,6 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'right',
@@ -591,7 +649,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     color: '#34C759',
-    fontWeight: '600',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   statusDisabled: {
@@ -623,7 +680,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -690,11 +746,9 @@ const styles = StyleSheet.create({
   imageButtonText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -724,7 +778,6 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -763,7 +816,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -776,7 +828,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

@@ -108,14 +108,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 80,
-    fontWeight: '900',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 24,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 16,
@@ -167,13 +165,11 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
   secondaryButtonText: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

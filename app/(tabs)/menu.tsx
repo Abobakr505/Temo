@@ -38,6 +38,8 @@ export default function MenuScreen() {
   const loadData = async () => {
     try {
       setIsLoading(true);
+      console.log('جاري تحميل بيانات المنيو...');
+      
       const [categoriesData, menuItemsData, drinkCategoriesData, drinksData] = await Promise.all([
         supabase.from('categories').select('*').order('display_order'),
         supabase.from('menu_items').select('*').eq('is_available', true).order('display_order'),
@@ -45,10 +47,23 @@ export default function MenuScreen() {
         supabase.from('drinks').select('*, drink_categories(*)').eq('is_available', true).order('display_order')
       ]);
       
+      console.log('نتائج الاستعلامات:', {
+        categories: categoriesData.data?.length,
+        menuItems: menuItemsData.data?.length,
+        drinkCategories: drinkCategoriesData.data?.length,
+        drinks: drinksData.data?.length
+      });
+
       if (categoriesData.data) setCategories(categoriesData.data);
       if (menuItemsData.data) setMenuItems(menuItemsData.data);
       if (drinkCategoriesData.data) setDrinkCategories(drinkCategoriesData.data);
       if (drinksData.data) setDrinks(drinksData.data);
+
+      // إذا لم تكن هناك بيانات، عرض رسالة
+      if (!categoriesData.data?.length && !menuItemsData.data?.length && 
+          !drinkCategoriesData.data?.length && !drinksData.data?.length) {
+        console.log('لا توجد بيانات في قاعدة البيانات');
+      }
     } catch (error) {
       console.error('Error loading menu data:', error);
     } finally {
@@ -85,7 +100,6 @@ export default function MenuScreen() {
   };
 
   const addItemToCart = (item: MenuItem | Drink, type: 'food' | 'drink') => {
-    // يمكنك تعديل هذا الجزء ليناسب هيكل البيانات الخاص بك
     const cartItem = {
       ...item,
       type: type
@@ -145,6 +159,14 @@ export default function MenuScreen() {
         style={styles.menuScroll}
         contentContainerStyle={styles.menuContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FF9500']}
+            tintColor="#FF9500"
+          />
+        }
       >
         {filteredFoodItems.length === 0 ? (
           <View style={styles.emptyState}>
@@ -159,9 +181,12 @@ export default function MenuScreen() {
             ) : (
               <>
                 <Text style={styles.placeholderEmoji}>🍽️</Text>
-                <Text style={styles.emptyStateText}>لا توجد عناصر</Text>
+                <Text style={styles.emptyStateText}>لا توجد عناصر في هذا القسم</Text>
                 <Text style={styles.emptyStateSubtext}>
-                  سيتم إضافة المزيد من المنتجات قريباً
+                  {categories.length === 0 ? 
+                    'لم يتم إضافة فئات بعد' : 
+                    'سيتم إضافة المزيد من المنتجات قريباً'
+                  }
                 </Text>
               </>
             )}
@@ -276,6 +301,14 @@ export default function MenuScreen() {
         style={styles.menuScroll}
         contentContainerStyle={styles.menuContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FF9500']}
+            tintColor="#FF9500"
+          />
+        }
       >
         {filteredDrinkItems.length === 0 ? (
           <View style={styles.emptyState}>
@@ -290,9 +323,12 @@ export default function MenuScreen() {
             ) : (
               <>
                 <Text style={styles.placeholderEmoji}>🥤</Text>
-                <Text style={styles.emptyStateText}>لا توجد مشروبات</Text>
+                <Text style={styles.emptyStateText}>لا توجد مشروبات في هذا القسم</Text>
                 <Text style={styles.emptyStateSubtext}>
-                  سيتم إضافة المزيد من المشروبات قريباً
+                  {drinkCategories.length === 0 ? 
+                    'لم يتم إضافة فئات مشروبات بعد' : 
+                    'سيتم إضافة المزيد من المشروبات قريباً'
+                  }
                 </Text>
               </>
             )}
@@ -348,15 +384,9 @@ export default function MenuScreen() {
                       </Text>
                     )}
                     
-                    {/* عرض السعرات الحرارية إذا كانت متوفرة */}
-                    {item.calories && (
-                      <Text style={styles.caloriesText}>
-                        {item.calories} سعرة حرارية
-                      </Text>
-                    )}
                     
                     <View style={styles.menuItemFooter}>
-                      <Text style={styles.menuItemPrice}>
+                      <Text style={styles.drinkPrice}>
                         {item.price.toFixed(2)} ج.م
                       </Text>
                       <TouchableOpacity
@@ -432,16 +462,21 @@ export default function MenuScreen() {
         </View>
       </LinearGradient>
 
-      <View style={styles.content}>
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={['#FF9500']}
-          tintColor="#FF9500"
-        >
-          {activeTab === 'food' ? renderFoodContent() : renderDrinksContent()}
-        </RefreshControl>
-      </View>
+      {/* التصحيح الرئيسي: وضع RefreshControl في ScrollView الرئيسي */}
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FF9500']}
+            tintColor="#FF9500"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {activeTab === 'food' ? renderFoodContent() : renderDrinksContent()}
+      </ScrollView>
     </View>
   );
 }
@@ -474,7 +509,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 50,
-    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 20,
     fontFamily: 'GraphicSchool-Regular',
@@ -524,7 +558,6 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -541,38 +574,42 @@ const styles = StyleSheet.create({
     maxHeight: 60,
     backgroundColor: '#F9F9F9',
   },
-  categoriesContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
-    flexDirection: 'row-reverse',
-    alignItems: 'center'
-  },
-  categoryChip: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-    marginTop: 8,
-  },
+categoriesContent: {
+  paddingHorizontal: 20,
+  paddingVertical: 12,
+  gap: 12,
+  flexDirection: 'row-reverse',
+  alignItems: 'center',
+  height: 60, // ✅ إضافة ارتفاع ثابت
+},
+categoryChip: {
+  paddingHorizontal: 16, // ✅ تقليل المسافة الأفقية
+  paddingVertical: 8,    // ✅ تقليل المسافة الرأسية
+  borderRadius: 20,
+  backgroundColor: '#FFFFFF',
+  borderWidth: 1,
+  borderColor: '#E5E5EA',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05,
+  shadowRadius: 3,
+  elevation: 1,
+  // إزالة marginTop
+  minHeight: 40, // ✅ إضافة ارتفاع أدنى
+  justifyContent: 'center', // ✅ توسيط النص عمودياً
+},
   categoryChipActive: {
     backgroundColor: '#FF9500',
     borderColor: '#FF9500',
   },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    fontFamily: 'IBMPlexSansArabic-Medium',
-    textAlign: 'center',
-  },
+categoryChipText: {
+  fontSize: 14,
+  color: '#1C1C1E',
+  fontFamily: 'IBMPlexSansArabic-Medium',
+  textAlign: 'center',
+  // ✅ إزالة أي padding أو margin إضافي
+  lineHeight: 16, // ✅ إضافة lineHeight
+},
   categoryChipTextActive: {
     color: '#FFFFFF',
   },
@@ -581,6 +618,7 @@ const styles = StyleSheet.create({
   },
   menuContent: {
     padding: 20,
+    flexGrow: 1,
   },
   menuGrid: {
     flexDirection: 'row',
@@ -626,7 +664,6 @@ const styles = StyleSheet.create({
   },
   menuItemName: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -643,15 +680,7 @@ const styles = StyleSheet.create({
   drinkSize: {
     fontSize: 12,
     color: '#007AFF',
-    fontWeight: '600',
     marginBottom: 4,
-    fontFamily: 'IBMPlexSansArabic-Medium',
-    textAlign: 'right',
-  },
-  caloriesText: {
-    fontSize: 11,
-    color: '#34C759',
-    marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
   },
@@ -662,8 +691,13 @@ const styles = StyleSheet.create({
   },
   menuItemPrice: {
     fontSize: 20,
-    fontWeight: '800',
     color: '#FF9500',
+    fontFamily: 'IBMPlexSansArabic-Bold',
+    textAlign: 'right',
+  },  
+  drinkPrice: {
+    fontSize: 20,
+    color: '#007AFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'right',
   },
@@ -685,7 +719,6 @@ const styles = StyleSheet.create({
   },
   addToCartText: {
     fontSize: 24,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'center',
@@ -695,10 +728,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 80,
+    minHeight: 300,
   },
   emptyStateText: {
     fontSize: 20,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'center',
@@ -711,5 +744,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     opacity: 0.8,
+    paddingHorizontal: 20,
   },
 });

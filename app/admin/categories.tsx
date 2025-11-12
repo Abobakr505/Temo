@@ -22,6 +22,7 @@ import {
 import { supabase, Category } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 export default function AdminCategoriesScreen() {
  const [categories, setCategories] = useState<Category[]>([]);
@@ -43,71 +44,104 @@ export default function AdminCategoriesScreen() {
   }, []);
 
   const loadCategories = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('display_order');
+  try {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('display_order');
 
-      if (error) {
-        console.error('Error loading categories:', error);
-        Alert.alert('خطأ', 'فشل في تحميل الفئات');
-      } else {
-        setCategories(data || []);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      Alert.alert('خطأ', 'فشل في تحميل الفئات');
-    } finally {
-      setIsLoading(false);
+    if (error) {
+      console.error('Error loading categories:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'خطأ',
+        text2: 'فشل في تحميل الفئات',
+        position: 'top',
+      });
+    } else {
+      setCategories(data || []);
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحميل الفئات',
+      position: 'top',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const filteredCategories = categories.filter(category =>
     category.name_ar.includes(searchQuery)
   );
 
-  const handleSaveCategory = async () => {
-    if (!formData.name_ar) {
-      Alert.alert('خطأ', 'يرجى إدخال اسم الفئة بالعربية');
-      return;
+ const handleSaveCategory = async () => {
+  if (!formData.name_ar) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'يرجى إدخال اسم الفئة بالعربية',
+      position: 'top',
+    });
+    return;
+  }
+
+  setFormLoading(true);
+  try {
+    const categoryData = {
+      name_ar: formData.name_ar,
+      display_order: parseInt(formData.display_order) || 0,
+      is_active: formData.is_active,
+    };
+
+    if (editingCategory) {
+      const { error } = await supabase
+        .from('categories')
+        .update(categoryData)
+        .eq('id', editingCategory.id);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'نجاح',
+        text2: 'تم تحديث الفئة بنجاح',
+        position: 'top',
+      });
+    } else {
+      const { error } = await supabase
+        .from('categories')
+        .insert([categoryData]);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'نجاح',
+        text2: 'تم إضافة الفئة بنجاح',
+        position: 'top',
+      });
     }
 
-    setFormLoading(true);
-    try {
-      const categoryData = {
-        name_ar: formData.name_ar,
-        display_order: parseInt(formData.display_order) || 0,
-        is_active: formData.is_active,
-      };
-
-      if (editingCategory) {
-        const { error } = await supabase
-          .from('categories')
-          .update(categoryData)
-          .eq('id', editingCategory.id);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم تحديث الفئة بنجاح');
-      } else {
-        const { error } = await supabase
-          .from('categories')
-          .insert([categoryData]);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم إضافة الفئة بنجاح');
-      }
-
-      resetForm();
-      loadCategories();
-    } catch (error) {
-      console.error('Error saving category:', error);
-      Alert.alert('خطأ', 'فشل في حفظ الفئة');
-    } finally {
-      setFormLoading(false);
-    }
-  };
+    resetForm();
+    loadCategories();
+  } catch (error) {
+    console.error('Error saving category:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في حفظ الفئة',
+      position: 'top',
+    });
+  } finally {
+    setFormLoading(false);
+  }
+};
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
@@ -120,33 +154,42 @@ export default function AdminCategoriesScreen() {
   };
 
   const handleDelete = async (category: Category) => {
-    Alert.alert(
-      'حذف الفئة',
-      `هل أنت متأكد من حذف ${category.name_ar}؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'حذف',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('categories')
-                .delete()
-                .eq('id', category.id);
+  Toast.show({
+    type: 'info',
+    text1: 'تأكيد الحذف',
+    text2: `هل أنت متأكد من حذف ${category.name_ar}?`,
+    position: 'top',
+    visibilityTime: 4000,
+    autoHide: true,
+    onPress: async () => {
+      try {
+        const { error } = await supabase
+          .from('categories')
+          .delete()
+          .eq('id', category.id);
 
-              if (error) throw error;
-              Alert.alert('نجاح', 'تم حذف الفئة بنجاح');
-              loadCategories();
-            } catch (error) {
-              console.error('Error deleting category:', error);
-              Alert.alert('خطأ', 'فشل في حذف الفئة');
-            }
-          },
-        },
-      ]
-    );
-  };
+        if (error) throw error;
+
+        Toast.show({
+          type: 'success',
+          text1: 'نجاح',
+          text2: 'تم حذف الفئة بنجاح',
+          position: 'top',
+        });
+
+        loadCategories();
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'خطأ',
+          text2: 'فشل في حذف الفئة',
+          position: 'top',
+        });
+      }
+    },
+  });
+};
 
   const resetForm = () => {
     setFormData({
@@ -335,7 +378,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
   },
@@ -394,7 +436,6 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'right',
@@ -439,7 +480,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -450,7 +490,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -477,7 +516,6 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -516,7 +554,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -529,7 +566,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

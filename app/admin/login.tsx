@@ -16,6 +16,7 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 export default function AdminLoginScreen() {
   const [email, setEmail] = useState('');
@@ -23,18 +24,30 @@ export default function AdminLoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAdminAuth();
   const router = useRouter();
+  
+const handleLogin = async () => {
+  if (!email || !password) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'يرجى إدخال البريد الإلكتروني وكلمة المرور',
+      position: 'top',
+    });
+    return;
+  }
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('خطأ', 'يرجى إدخال البريد الإلكتروني وكلمة المرور');
-      return;
-    }
+const success = await login(email, password);
+if (success) {
+  Toast.show({
+    type: 'success',
+    text1: 'تم تسجيل الدخول بنجاح 🎉',
+    text2: 'مرحباً بك في لوحة التحكم',
+    position: 'top',
+  });
+  router.replace('/admin/dashboard');
+}
 
-    const success = await login(email, password);
-    if (success) {
-      router.replace('/admin/dashboard');
-    }
-  };
+};
 
   return (
     <LinearGradient
@@ -133,8 +146,7 @@ const styles = StyleSheet.create({
     marginBottom: 50,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 28,
     color: '#FFFFFF',
     marginBottom: 8,
     fontFamily: 'GraphicSchool-Regular',
@@ -189,7 +201,6 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

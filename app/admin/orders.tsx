@@ -23,6 +23,7 @@ import {
 import { supabase, Order, OrderItem } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 export default function AdminOrdersScreen() {
   const [orders, setOrders] = useState<(Order & { order_items: (OrderItem & { menu_items: any })[] })[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,49 +34,69 @@ export default function AdminOrdersScreen() {
   useEffect(() => {
     loadOrders();
   }, []);
-  const loadOrders = async () => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
+const loadOrders = async () => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      order_items (
         *,
-        order_items (
-          *,
-          menu_items (
-            name_ar,
-            price
-          )
+        menu_items (
+          name_ar,
+          price
         )
-      `)
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Error loading orders:', error);
-      Alert.alert('خطأ', 'فشل في تحميل الطلبات');
-    } else {
-      setOrders(data || []);
-    }
-  };
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error loading orders:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحميل الطلبات',
+      position: 'bottom',
+    });
+  } else {
+    setOrders(data || []);
+  }
+};
   const filteredOrders = orders.filter(order =>
     order.customer_name.includes(searchQuery) ||
     order.customer_phone.includes(searchQuery) ||
     order.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', orderId);
-      if (error) throw error;
-      Alert.alert('نجاح', 'تم تحديث حالة الطلب بنجاح');
-      await loadOrders();
-    } catch (error) {
-      console.error('Update error:', error);
-      Alert.alert('خطأ', 'فشل في تحديث حالة الطلب');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+  setIsLoading(true);
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (error) throw error;
+
+    Toast.show({
+      type: 'success',
+      text1: 'تم بنجاح 🎉',
+      text2: 'تم تحديث حالة الطلب بنجاح',
+      position: 'bottom',
+    });
+
+    await loadOrders();
+  } catch (error) {
+    console.error('Update error:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحديث حالة الطلب',
+      position: 'bottom',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -134,6 +155,50 @@ export default function AdminOrdersScreen() {
     setSelectedOrder(order);
     setIsModalVisible(true);
   };
+const handleDeleteOrder = async (orderId: string) => {
+  Alert.alert(
+    'تأكيد الحذف',
+    'هل أنت متأكد أنك تريد حذف هذا الطلب؟',
+    [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'حذف',
+        style: 'destructive',
+        onPress: async () => {
+          setIsLoading(true);
+          try {
+            const { error } = await supabase
+              .from('orders')
+              .delete()
+              .eq('id', orderId);
+
+            if (error) throw error;
+
+            Toast.show({
+              type: 'success',
+              text1: 'تم بنجاح 🎉',
+              text2: 'تم حذف الطلب بنجاح',
+              position: 'bottom',
+            });
+
+            await loadOrders();
+          } catch (error) {
+            console.error('Delete error:', error);
+            Toast.show({
+              type: 'error',
+              text1: 'خطأ',
+              text2: 'فشل في حذف الطلب',
+              position: 'bottom',
+            });
+          } finally {
+            setIsLoading(false);
+          }
+        },
+      },
+    ]
+  );
+};
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -202,6 +267,14 @@ export default function AdminOrdersScreen() {
                   <Eye size={16} color="#007AFF" />
                   <Text style={styles.viewButtonText}>عرض التفاصيل</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteOrder(order.id)}
+                  disabled={isLoading}
+                >
+                  <XCircle size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+
                 <View style={styles.statusActions}>
                   {order.status === 'pending' && (
                     <>
@@ -371,7 +444,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
   },
@@ -428,14 +500,12 @@ const styles = StyleSheet.create({
   },
   orderId: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
     marginBottom: 4,
   },
   customerName: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 2,
@@ -455,7 +525,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -470,7 +539,6 @@ const styles = StyleSheet.create({
   },
   orderTotal: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -483,6 +551,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap:2,
   },
   viewButton: {
     flexDirection: 'row',
@@ -491,10 +560,21 @@ const styles = StyleSheet.create({
   },
   viewButtonText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#007AFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
+  deleteButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#FF3B30',
+  borderRadius: 8,
+  paddingHorizontal: 8,
+  paddingVertical: 8,
+  marginLeft: 2,
+},
+
+
   statusActions: {
     flexDirection: 'row',
     gap: 8,
@@ -521,7 +601,6 @@ const styles = StyleSheet.create({
   },
   statusButtonText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -541,7 +620,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -555,7 +633,6 @@ const styles = StyleSheet.create({
   },
   detailTitle: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 12,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -569,13 +646,11 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   detailValue: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
@@ -589,7 +664,6 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
     flex: 1,
@@ -597,14 +671,12 @@ const styles = StyleSheet.create({
   },
   itemQuantity: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
     marginHorizontal: 8,
   },
   itemPrice: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -619,13 +691,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
   totalAmount: {
     fontSize: 18,
-    fontWeight: '800',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -645,7 +715,6 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

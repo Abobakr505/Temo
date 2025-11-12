@@ -302,7 +302,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 32,
-    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 4,
     fontFamily: "GraphicSchool-Regular",
@@ -335,7 +334,6 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -359,7 +357,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'center',
@@ -395,13 +392,11 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   newsTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -425,7 +420,6 @@ const styles = StyleSheet.create({
   },
   readMore: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
     marginTop: 8,
     textDecorationLine: 'underline',
@@ -461,13 +455,11 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 14,
-    fontWeight: '800',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
   offerTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Bold',

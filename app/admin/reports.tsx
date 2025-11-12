@@ -432,7 +432,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
   },
@@ -455,7 +454,6 @@ const styles = StyleSheet.create({
   },
   periodButtonText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -498,7 +496,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '800',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 4,
@@ -527,7 +524,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -547,7 +543,6 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
     marginBottom: 2,
@@ -559,7 +554,6 @@ const styles = StyleSheet.create({
   },
   productRevenue: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#34C759',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -589,13 +583,11 @@ const styles = StyleSheet.create({
   },
   statusName: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   statusCount: {
     fontSize: 20,
-    fontWeight: '800',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -628,7 +620,6 @@ const styles = StyleSheet.create({
   },
   revenueValue: {
     fontSize: 10,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -649,7 +640,6 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 8,
@@ -685,7 +675,6 @@ const styles = StyleSheet.create({
   },
   performanceValue: {
     fontSize: 16,
-    fontWeight: '800',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

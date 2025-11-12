@@ -117,7 +117,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="menu" />
       <Tabs.Screen name="cart" />
-      <Tabs.Screen name="news" />
+      <Tabs.Screen name="events" />
       <Tabs.Screen name="about" />
     </Tabs>
   );
@@ -152,7 +152,6 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 12,
-    fontWeight: '600',
     fontFamily: 'IBMPlexSansArabic-Medium',
     marginTop: 4,
   },
@@ -174,7 +173,6 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
 });

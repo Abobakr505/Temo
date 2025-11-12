@@ -24,6 +24,7 @@ import { supabase, News } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Toast from 'react-native-toast-message';
 
 export default function AdminNewsScreen() {
   const [news, setNews] = useState<News[]>([]);
@@ -34,111 +35,121 @@ export default function AdminNewsScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
 
-  const [formData, setFormData] = useState({
-    title_ar: '',
-    content_ar: '',
-    published_date: new Date(),
-    is_active: true,
-  });
+ const loadNews = async () => {
+  const { data, error } = await supabase
+    .from('news')
+    .select('*')
+    .order('published_date', { ascending: false });
 
-  useEffect(() => {
-    loadNews();
-  }, []);
-
-  const loadNews = async () => {
-    const { data, error } = await supabase
-      .from('news')
-      .select('*')
-      .order('published_date', { ascending: false });
-
-    if (error) {
-      Alert.alert('خطأ', 'فشل في تحميل الأخبار');
-    } else {
-      setNews(data || []);
-    }
-  };
-
-  const filteredNews = news.filter(newsItem =>
-    newsItem.title_ar.includes(searchQuery) ||
-    newsItem.title_en?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleSaveNews = async () => {
-    if (!formData.title_ar || !formData.content_ar) {
-      Alert.alert('خطأ', 'يرجى ملء جميع الحقول المطلوبة');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const newsData = {
-        ...formData,
-        published_date: formData.published_date.toISOString().split('T')[0],
-      };
-
-      if (editingNews) {
-        const { error } = await supabase
-          .from('news')
-          .update(newsData)
-          .eq('id', editingNews.id);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم تحديث الخبر بنجاح');
-      } else {
-        const { error } = await supabase
-          .from('news')
-          .insert([newsData]);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم إضافة الخبر بنجاح');
-      }
-
-      resetForm();
-      loadNews();
-    } catch (error) {
-      Alert.alert('خطأ', 'فشل في حفظ الخبر');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEdit = (newsItem: News) => {
-    setEditingNews(newsItem);
-    setFormData({
-      title_ar: newsItem.title_ar,
-      content_ar: newsItem.content_ar,
-      published_date: new Date(newsItem.published_date),
-      is_active: newsItem.is_active,
+  if (error) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحميل الأخبار',
+      position: 'top',
     });
-    setIsModalVisible(true);
-  };
+  } else {
+    setNews(data || []);
+  }
+};
 
-  const handleDelete = (newsItem: News) => {
-    Alert.alert(
-      'حذف الخبر',
-      `هل أنت متأكد من حذف ${newsItem.title_ar}؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'حذف',
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await supabase
-              .from('news')
-              .delete()
-              .eq('id', newsItem.id);
+const handleSaveNews = async () => {
+  if (!formData.title_ar || !formData.content_ar) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'يرجى ملء جميع الحقول المطلوبة',
+      position: 'top',
+    });
+    return;
+  }
 
-            if (error) {
-              Alert.alert('خطأ', 'فشل في حذف الخبر');
-            } else {
-              Alert.alert('نجاح', 'تم حذف الخبر بنجاح');
-              loadNews();
-            }
-          },
+  setIsLoading(true);
+  try {
+    const newsData = {
+      ...formData,
+      published_date: formData.published_date.toISOString().split('T')[0],
+    };
+
+    if (editingNews) {
+      const { error } = await supabase
+        .from('news')
+        .update(newsData)
+        .eq('id', editingNews.id);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'تم التحديث 🎉',
+        text2: 'تم تحديث الخبر بنجاح',
+        position: 'top',
+      });
+    } else {
+      const { error } = await supabase
+        .from('news')
+        .insert([newsData]);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'تم الإضافة 🎉',
+        text2: 'تم إضافة الخبر بنجاح',
+        position: 'top',
+      });
+    }
+
+    resetForm();
+    loadNews();
+  } catch (error) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في حفظ الخبر',
+      position: 'top',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const handleDelete = (newsItem: News) => {
+  Alert.alert(
+    'حذف الخبر',
+    `هل أنت متأكد من حذف ${newsItem.title_ar}؟`,
+    [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'حذف',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase
+            .from('news')
+            .delete()
+            .eq('id', newsItem.id);
+
+          if (error) {
+            Toast.show({
+              type: 'error',
+              text1: 'خطأ',
+              text2: 'فشل في حذف الخبر',
+              position: 'top',
+            });
+          } else {
+            Toast.show({
+              type: 'success',
+              text1: 'تم الحذف 🎉',
+              text2: 'تم حذف الخبر بنجاح',
+              position: 'top',
+            });
+            loadNews();
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   const resetForm = () => {
     setFormData({
@@ -365,7 +376,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
   },
@@ -426,14 +436,12 @@ const styles = StyleSheet.create({
   },
   newsDate: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#FFFFFF',
     opacity: 0.8,
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   newsTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'right',
@@ -475,7 +483,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -486,7 +493,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -533,7 +539,6 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -572,7 +577,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -585,7 +589,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

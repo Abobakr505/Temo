@@ -504,7 +504,6 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 48,
-    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
@@ -514,7 +513,6 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#FFFFFF',
     opacity: 0.95,
     fontFamily: "IBMPlexSansArabic-Medium"
@@ -531,7 +529,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#1C1C1E',
     flex: 1,
     fontFamily: "IBMPlexSansArabic-Bold"
@@ -565,13 +562,11 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 14,
-    fontWeight: '800',
     color: '#FF9500',
     fontFamily: "IBMPlexSansArabic-Bold"
   },
   offerTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 8,
     fontFamily: "IBMPlexSansArabic-Bold"
@@ -632,7 +627,6 @@ const styles = StyleSheet.create({
   },
   featuredText: {
     fontSize: 10,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: "IBMPlexSansArabic-Medium",
   },
@@ -641,7 +635,6 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 8,
     fontFamily: "IBMPlexSansArabic-Bold",
@@ -650,7 +643,6 @@ const styles = StyleSheet.create({
   drinkSize: {
     fontSize: 12,
     color: '#007AFF',
-    fontWeight: '600',
     marginBottom: 8,
     fontFamily: "IBMPlexSansArabic-Medium",
   },
@@ -661,7 +653,6 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FF9500',
     fontFamily: "IBMPlexSansArabic-Bold",
   },
@@ -674,7 +665,6 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#FFFFFF',
     textAlign: 'center',
   },
@@ -703,7 +693,6 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: "IBMPlexSansArabic-Bold",
     textAlign: 'center',
@@ -726,7 +715,6 @@ const styles = StyleSheet.create({
   },
   newsDate: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#FFFFFF',
     opacity: 0.8,
     marginBottom: 8,
@@ -734,7 +722,6 @@ const styles = StyleSheet.create({
   },
   newsTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 8,
     fontFamily: "IBMPlexSansArabic-Bold",

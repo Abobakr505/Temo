@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -23,6 +24,10 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
+
+const { width } = Dimensions.get('window');
+const isSmallScreen = width < 400;
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -88,23 +93,22 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'تسجيل الخروج',
-      'هل أنت متأكد من تسجيل الخروج؟',
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'تسجيل الخروج',
-          style: 'destructive',
-          onPress: () => {
-            logout();
-            router.replace('/admin/login');
-          },
-        },
-      ]
-    );
-  };
+
+const handleLogout = () => {
+  Toast.show({
+    type: 'info',
+    text1: 'تسجيل الخروج',
+    text2: 'اضغط هنا لتأكيد تسجيل الخروج',
+    position: 'top',
+    visibilityTime: 4000,
+    autoHide: true,
+    onPress: () => {
+      logout();
+      router.replace('/admin/login');
+    },
+  });
+};
+
 
   const menuItems = [
     // قسم الطعام
@@ -338,7 +342,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
     textAlign: 'left',
@@ -364,7 +367,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 16,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -374,10 +376,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    justifyContent: 'space-between',
+    justifyContent: isSmallScreen ? 'center' : 'space-between',
   },
   statCard: {
-    width: '48%',
+    width: isSmallScreen ? '80%' :'48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
@@ -399,7 +401,6 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: '800',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 4,
@@ -418,10 +419,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    justifyContent: 'space-between',
+    justifyContent: isSmallScreen ? 'center' : 'space-between',
+
   },
   menuItem: {
-    width: '48%',
+    width: isSmallScreen ? '80%' :'48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
@@ -443,7 +445,6 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'center',

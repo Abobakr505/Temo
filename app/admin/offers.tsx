@@ -48,109 +48,134 @@ export default function AdminOffersScreen() {
     loadOffers();
   }, []);
 
-  const loadOffers = async () => {
-    const { data, error } = await supabase
-      .from('offers')
-      .select('*')
-      .order('created_at', { ascending: false });
+ const loadOffers = async () => {
+  const { data, error } = await supabase
+    .from('offers')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    if (error) {
-      Alert.alert('خطأ', 'فشل في تحميل العروض');
-    } else {
-      setOffers(data || []);
-    }
-  };
-
-  const filteredOffers = offers.filter(offer =>
-    offer.title_ar.includes(searchQuery) ||
-    offer.title_en?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleSaveOffer = async () => {
-    if (!formData.title_ar || !formData.discount_percentage) {
-      Alert.alert('خطأ', 'يرجى ملء جميع الحقول المطلوبة');
-      return;
-    }
-
-    if (formData.start_date >= formData.end_date) {
-      Alert.alert('خطأ', 'تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const offerData = {
-        ...formData,
-        discount_percentage: parseFloat(formData.discount_percentage),
-        start_date: formData.start_date.toISOString().split('T')[0],
-        end_date: formData.end_date.toISOString().split('T')[0],
-      };
-
-      if (editingOffer) {
-        const { error } = await supabase
-          .from('offers')
-          .update(offerData)
-          .eq('id', editingOffer.id);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم تحديث العرض بنجاح');
-      } else {
-        const { error } = await supabase
-          .from('offers')
-          .insert([offerData]);
-
-        if (error) throw error;
-        Alert.alert('نجاح', 'تم إضافة العرض بنجاح');
-      }
-
-      resetForm();
-      loadOffers();
-    } catch (error) {
-      Alert.alert('خطأ', 'فشل في حفظ العرض');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEdit = (offer: Offer) => {
-    setEditingOffer(offer);
-    setFormData({
-      title_ar: offer.title_ar,
-      description_ar: offer.description_ar || '',
-      discount_percentage: offer.discount_percentage.toString(),
-      start_date: new Date(offer.start_date),
-      end_date: new Date(offer.end_date),
-      is_active: offer.is_active,
+  if (error) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في تحميل العروض',
+      position: 'top',
     });
-    setIsModalVisible(true);
-  };
+  } else {
+    setOffers(data || []);
+  }
+};
 
-  const handleDelete = (offer: Offer) => {
-    Alert.alert(
-      'حذف العرض',
-      `هل أنت متأكد من حذف ${offer.title_ar}؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'حذف',
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await supabase
-              .from('offers')
-              .delete()
-              .eq('id', offer.id);
+const handleSaveOffer = async () => {
+  if (!formData.title_ar || !formData.discount_percentage) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'يرجى ملء جميع الحقول المطلوبة',
+      position: 'top',
+    });
+    return;
+  }
 
-            if (error) {
-              Alert.alert('خطأ', 'فشل في حذف العرض');
-            } else {
-              Alert.alert('نجاح', 'تم حذف العرض بنجاح');
-              loadOffers();
-            }
-          },
+  if (formData.start_date >= formData.end_date) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'تاريخ البداية يجب أن يكون قبل تاريخ النهاية',
+      position: 'top',
+    });
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    const offerData = {
+      ...formData,
+      discount_percentage: parseFloat(formData.discount_percentage),
+      start_date: formData.start_date.toISOString().split('T')[0],
+      end_date: formData.end_date.toISOString().split('T')[0],
+    };
+
+    if (editingOffer) {
+      const { error } = await supabase
+        .from('offers')
+        .update(offerData)
+        .eq('id', editingOffer.id);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'تم التحديث 🎉',
+        text2: 'تم تحديث العرض بنجاح',
+        position: 'top',
+      });
+    } else {
+      const { error } = await supabase
+        .from('offers')
+        .insert([offerData]);
+
+      if (error) throw error;
+
+      Toast.show({
+        type: 'success',
+        text1: 'تم الإضافة 🎉',
+        text2: 'تم إضافة العرض بنجاح',
+        position: 'top',
+      });
+    }
+
+    resetForm();
+    loadOffers();
+  } catch (error) {
+    Toast.show({
+      type: 'error',
+      text1: 'خطأ',
+      text2: 'فشل في حفظ العرض',
+      position: 'top',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const handleDelete = (offer: Offer) => {
+  Alert.alert(
+    'حذف العرض',
+    `هل أنت متأكد من حذف ${offer.title_ar}؟`,
+    [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'حذف',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase
+            .from('offers')
+            .delete()
+            .eq('id', offer.id);
+
+          if (error) {
+            Toast.show({
+              type: 'error',
+              text1: 'خطأ',
+              text2: 'فشل في حذف العرض',
+              position: 'top',
+            });
+          } else {
+            Toast.show({
+              type: 'success',
+              text1: 'تم الحذف 🎉',
+              text2: 'تم حذف العرض بنجاح',
+              position: 'top',
+            });
+            loadOffers();
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
+
 
   const resetForm = () => {
     setFormData({
@@ -422,7 +447,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: 'GraphicSchool-Regular',
   },
@@ -484,7 +508,6 @@ const styles = StyleSheet.create({
   },
   offerTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
     flex: 1,
@@ -499,7 +522,6 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 14,
-    fontWeight: '800',
     color: '#FF9500',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
@@ -549,7 +571,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
     fontFamily: 'IBMPlexSansArabic-Bold',
@@ -560,7 +581,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 8,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -602,7 +622,6 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#1C1C1E',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -641,7 +660,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -654,7 +672,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Bold',
   },

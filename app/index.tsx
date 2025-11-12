@@ -8,6 +8,7 @@ import {
   Dimensions,
   StatusBar,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,7 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   return (
+    <ScrollView>
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
@@ -122,10 +124,10 @@ export default function WelcomeScreen() {
                   <View style={styles.buttonContent}>
                     <ChefHat size={24} color="#FF9500" />
                     <View style={styles.buttonTextContainer}>
-                      <Text style={[styles.buttonText, styles.primaryButtonText]}>
+                      <Text style={[styles.buttonText, styles.primaryButtonText , ]}>
                         الدخول للتطبيق
                       </Text>
-                      <Text style={styles.buttonSubtext}>
+                      <Text style={[styles.buttonSubtext , styles.primaryButtonText ]}>
                         استعرض القائمة واطلب الآن
                       </Text>
                     </View>
@@ -144,7 +146,7 @@ export default function WelcomeScreen() {
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                  colors={['#FFCC00', '#FF9500']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.buttonGradient}
@@ -155,7 +157,7 @@ export default function WelcomeScreen() {
                       <Text style={[styles.buttonText, styles.secondaryButtonText]}>
                         لوحة التحكم
                       </Text>
-                      <Text style={[styles.buttonSubtext, styles.secondaryButtonSubtext]}>
+                      <Text style={[styles.buttonSubtext, styles.secondaryButtonSubtext ]}>
                         إدارة المحتوى والطلبات
                       </Text>
                     </View>
@@ -184,6 +186,7 @@ export default function WelcomeScreen() {
         </View>
       </LinearGradient>
     </View>
+</ScrollView>
   );
 }
 
@@ -231,7 +234,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 64,
-    fontWeight: '900',
     color: '#FFFFFF',
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 4 },
@@ -241,7 +243,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 22,
-    fontWeight: '600',
     color: '#FFFFFF',
     opacity: 0.95,
     fontFamily: 'IBMPlexSansArabic-Medium',
@@ -256,10 +257,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    marginBottom: 8 , 
   },
   taglineText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
@@ -299,7 +300,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 20,
-    fontWeight: '700',
     fontFamily: 'IBMPlexSansArabic-Bold',
     marginBottom: 4,
   },
@@ -311,7 +311,6 @@ const styles = StyleSheet.create({
   },
   buttonSubtext: {
     fontSize: 14,
-    fontWeight: '500',
     fontFamily: 'IBMPlexSansArabic-Medium',
     opacity: 0.8,
   },
@@ -325,6 +324,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row-reverse',
     gap: 4,
+    marginBottom: 8 , 
   },
   footerText: {
     fontSize: 14,

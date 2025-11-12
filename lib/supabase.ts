@@ -98,6 +98,7 @@ export interface OrderItem {
 }
 
 export interface CartItem extends MenuItem {
+  type: any;
   quantity: number;
 }
 
