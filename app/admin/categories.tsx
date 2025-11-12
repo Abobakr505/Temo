@@ -24,18 +24,16 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 export default function AdminCategoriesScreen() {
-  const [categories, setCategories] = useState<Category[]>([]);
+ const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
     name_ar: '',
-    name_en: '',
-    description_ar: '',
-    description_en: '',
     display_order: '0',
     is_active: true,
   });
@@ -45,21 +43,29 @@ export default function AdminCategoriesScreen() {
   }, []);
 
   const loadCategories = async () => {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('display_order');
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('display_order');
 
-    if (error) {
+      if (error) {
+        console.error('Error loading categories:', error);
+        Alert.alert('خطأ', 'فشل في تحميل الفئات');
+      } else {
+        setCategories(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
       Alert.alert('خطأ', 'فشل في تحميل الفئات');
-    } else {
-      setCategories(data || []);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const filteredCategories = categories.filter(category =>
-    category.name_ar.includes(searchQuery) ||
-    category.name_en?.toLowerCase().includes(searchQuery.toLowerCase())
+    category.name_ar.includes(searchQuery)
   );
 
   const handleSaveCategory = async () => {
@@ -68,11 +74,12 @@ export default function AdminCategoriesScreen() {
       return;
     }
 
-    setIsLoading(true);
+    setFormLoading(true);
     try {
       const categoryData = {
-        ...formData,
-        display_order: parseInt(formData.display_order),
+        name_ar: formData.name_ar,
+        display_order: parseInt(formData.display_order) || 0,
+        is_active: formData.is_active,
       };
 
       if (editingCategory) {
@@ -95,9 +102,10 @@ export default function AdminCategoriesScreen() {
       resetForm();
       loadCategories();
     } catch (error) {
+      console.error('Error saving category:', error);
       Alert.alert('خطأ', 'فشل في حفظ الفئة');
     } finally {
-      setIsLoading(false);
+      setFormLoading(false);
     }
   };
 
@@ -105,16 +113,13 @@ export default function AdminCategoriesScreen() {
     setEditingCategory(category);
     setFormData({
       name_ar: category.name_ar,
-      name_en: category.name_en || '',
-      description_ar: category.description_ar || '',
-      description_en: category.description_en || '',
       display_order: category.display_order.toString(),
       is_active: category.is_active,
     });
     setIsModalVisible(true);
   };
 
-  const handleDelete = (category: Category) => {
+  const handleDelete = async (category: Category) => {
     Alert.alert(
       'حذف الفئة',
       `هل أنت متأكد من حذف ${category.name_ar}؟`,
@@ -124,16 +129,18 @@ export default function AdminCategoriesScreen() {
           text: 'حذف',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabase
-              .from('categories')
-              .delete()
-              .eq('id', category.id);
+            try {
+              const { error } = await supabase
+                .from('categories')
+                .delete()
+                .eq('id', category.id);
 
-            if (error) {
-              Alert.alert('خطأ', 'فشل في حذف الفئة');
-            } else {
+              if (error) throw error;
               Alert.alert('نجاح', 'تم حذف الفئة بنجاح');
               loadCategories();
+            } catch (error) {
+              console.error('Error deleting category:', error);
+              Alert.alert('خطأ', 'فشل في حذف الفئة');
             }
           },
         },
@@ -144,20 +151,16 @@ export default function AdminCategoriesScreen() {
   const resetForm = () => {
     setFormData({
       name_ar: '',
-      name_en: '',
-      description_ar: '',
-      description_en: '',
       display_order: '0',
       is_active: true,
     });
     setEditingCategory(null);
     setIsModalVisible(false);
   };
-
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FFCC00']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -251,24 +254,6 @@ export default function AdminCategoriesScreen() {
                 value={formData.name_ar}
                 onChangeText={(text) => setFormData({ ...formData, name_ar: text })}
                 placeholder="أدخل اسم الفئة بالعربية"
-              />
-
-              <Text style={styles.inputLabel}>اسم الفئة (إنجليزي)</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.name_en}
-                onChangeText={(text) => setFormData({ ...formData, name_en: text })}
-                placeholder="أدخل اسم الفئة بالإنجليزية"
-              />
-
-              <Text style={styles.inputLabel}>الوصف (عربي)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={formData.description_ar}
-                onChangeText={(text) => setFormData({ ...formData, description_ar: text })}
-                placeholder="أدخل وصف الفئة بالعربية"
-                multiline
-                numberOfLines={3}
               />
 
               <Text style={styles.inputLabel}>ترتيب العرض</Text>
@@ -483,10 +468,7 @@ const styles = StyleSheet.create({
     fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
   },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
+
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

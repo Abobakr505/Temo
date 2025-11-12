@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Share,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -87,7 +88,6 @@ export default function ProductDetailsScreen() {
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
-    // يمكنك هنا إضافة منطق لحفظ المفضلة في قاعدة البيانات
   };
 
   const getCartQuantity = () => {
@@ -110,16 +110,15 @@ export default function ProductDetailsScreen() {
     <View style={styles.container}>
       {/* الهيدر */}
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FF9500']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={28} color="#FFFFFF" />
           </TouchableOpacity>
-          
+          <Text style={styles.headerTitle}>تفاصيل </Text>
           <View style={styles.headerActions}>
-            
             <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
               <Share2 size={28} color="#FFFFFF" />
             </TouchableOpacity>
@@ -136,18 +135,26 @@ export default function ProductDetailsScreen() {
           entering={ZoomIn.duration(600)}
           style={styles.imageSection}
         >
-          <LinearGradient
-            colors={['#FFF5E6', '#FFE6CC']}
-            style={styles.imageContainer}
-          >
-            <Text style={styles.placeholderEmoji}>🍟</Text>
-            {item.is_featured && (
-              <View style={styles.featuredBadge}>
-                <Star size={16} color="#FFFFFF" fill="#FFFFFF" />
-                <Text style={styles.featuredText}>مميز</Text>
-              </View>
-            )}
-          </LinearGradient>
+          {item.image_url ? (
+            <Image 
+              source={{ uri: item.image_url }} 
+              style={styles.imageContainer}
+              resizeMode="cover"
+            />
+          ) : (
+            <LinearGradient
+              colors={['#FFF5E6', '#FFE6CC']}
+              style={styles.imageContainer}
+            >
+              <Text style={styles.placeholderEmoji}>🍟</Text>
+            </LinearGradient>
+          )}
+          {item.is_featured && (
+            <View style={styles.featuredBadge}>
+              <Star size={16} color="#FFFFFF" fill="#FFFFFF" />
+              <Text style={styles.featuredText}>مميز</Text>
+            </View>
+          )}
         </Animated.View>
 
         {/* معلومات المنتج */}
@@ -169,7 +176,6 @@ export default function ProductDetailsScreen() {
             </View>
           )}
 
-
           {/* الوصف */}
           {item.description_ar && (
             <View style={styles.descriptionSection}>
@@ -178,39 +184,24 @@ export default function ProductDetailsScreen() {
             </View>
           )}
 
-          {/* المكونات */}
-          {item.ingredients_ar && (
-            <View style={styles.ingredientsSection}>
-              <Text style={styles.sectionTitle}>المكونات</Text>
-              <Text style={styles.ingredients}>{item.ingredients_ar}</Text>
-            </View>
-          )}
-
           {/* المميزات */}
-<View style={styles.featuresSection}>
-  <Text style={styles.sectionTitle}>المميزات</Text>
-  <View style={styles.featuresGrid}>
-    <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>
-        <Leaf size={16} color="#34C759" />
-      </Text>
-      <Text style={styles.featureText}>مكونات طبيعية</Text>
-    </View>
-    <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>
-        <BadgeCheck  size={16} color="#FF9500" />
-      </Text>
-      <Text style={styles.featureText}>طازج يومياً</Text>
-    </View>
-    
-    <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>
-        <HeartPlus  size={16} color="#34C759" />
-      </Text>
-      <Text style={styles.featureText}>خالي من المواد الحافظة</Text>
-    </View>
-  </View>
-</View>
+          <View style={styles.featuresSection}>
+            <Text style={styles.sectionTitle}>المميزات</Text>
+            <View style={styles.featuresGrid}>
+              <View style={styles.featureItem}>
+                <Leaf size={16} color="#34C759" />
+                <Text style={styles.featureText}>مكونات طبيعية</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <BadgeCheck size={16} color="#FF9500" />
+                <Text style={styles.featureText}>طازج يومياً</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <HeartPlus size={16} color="#34C759" />
+                <Text style={styles.featureText}>خالي من المواد الحافظة</Text>
+              </View>
+            </View>
+          </View>
 
           {/* الكمية في السلة */}
           {getCartQuantity() > 0 && (
@@ -257,7 +248,7 @@ export default function ProductDetailsScreen() {
             disabled={isLoading}
           >
             <LinearGradient
-              colors={['#FF9500', '#FF6B00']}
+              colors={['#FF9500', '#FF9500']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.addButtonGradient}
@@ -312,6 +303,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerTitle: {
+    fontSize: 42,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    fontFamily: 'GraphicSchool-Regular',
+  },
   backButton: {
     padding: 8,
   },
@@ -365,13 +363,11 @@ const styles = StyleSheet.create({
   detailsSection: {
     padding: 20,
     paddingTop: 0,
-
   },
   titleRow: {
     flexDirection: 'column',
     justifyContent: 'space-between',
     marginBottom: 12,
-
   },
   name: {
     fontSize: 28,
@@ -414,7 +410,6 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
-
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -433,48 +428,32 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
-  ingredientsSection: {
+  featuresSection: {
     marginBottom: 24,
   },
-  ingredients: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-    textAlign: 'right',
-    fontFamily: 'IBMPlexSansArabic-Medium',
+  featuresGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  featuresSection: {
-  marginBottom: 24,
-},
-featuresGrid: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  backgroundColor: '#FFFFFF',
-  borderRadius: 16,
-  padding: 16,
-  elevation: 2,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-},
-featureItem: {
-  alignItems: 'center',
-  flex: 1,
-},
-featureIcon: {
-  fontSize: 16,
-  fontWeight: '700',
-  color: '#34C759',
-  fontFamily: 'IBMPlexSansArabic-Bold',
-  marginLeft: 8,
-},
-featureText: {
-  fontSize: 12,
-  color: '#8E8E93',
-  fontFamily: 'IBMPlexSansArabic-Medium',
-  flex: 1,
-},
+  featureItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  featureText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontFamily: 'IBMPlexSansArabic-Medium',
+    marginTop: 4,
+    textAlign: 'center',
+  },
   cartInfo: {
     backgroundColor: '#E3F2FD',
     padding: 12,

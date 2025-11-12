@@ -38,7 +38,7 @@ export default function AdminLoginScreen() {
 
   return (
     <LinearGradient
-      colors={['#FF9500', '#FF6B00']}
+      colors={['#FF9500', '#FFCC00']}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -99,7 +99,7 @@ export default function AdminLoginScreen() {
               disabled={isLoading}
             >
               <LinearGradient
-                colors={['#FF9500', '#FF6B00']}
+                colors={['#FF9500', '#FFCC00']}
                 style={styles.loginGradient}
               >
                 {isLoading ? (

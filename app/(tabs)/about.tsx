@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     fontFamily: 'IBMPlexSansArabic-Medium',
   },
   footer: {
-    padding: 32,
+    padding: 2,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row-reverse',

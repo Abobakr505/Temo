@@ -26,7 +26,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
-
+const isSmallScreen = width < 400; 
 type ReportData = {
   totalRevenue: number;
   totalOrders: number;
@@ -239,7 +239,7 @@ export default function ReportsScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FFCC00']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -390,65 +390,6 @@ export default function ReportsScreen() {
                 <Text style={styles.revenueValue}>{day.revenue} ج.م</Text>
               </View>
             ))}
-          </View>
-        </Animated.View>
-
-        {/* إحصائيات الفئات */}
-        <Animated.View 
-          entering={FadeInUp.delay(800).duration(600)}
-          style={styles.section}
-        >
-          <View style={styles.sectionHeader}>
-            <Package size={24} color="#FF9500" />
-            <Text style={styles.sectionTitle}>إحصائيات الفئات</Text>
-          </View>
-          <View style={styles.categoriesGrid}>
-            {reportData?.categoryStats.map((category, index) => (
-              <LinearGradient
-                key={index}
-                colors={['#FFF5E6', '#FFE6CC']}
-                style={styles.categoryCard}
-              >
-                <Text style={styles.categoryName}>{category.category_name}</Text>
-                <View style={styles.categoryStats}>
-                  <Text style={styles.categoryStat}>
-                    {category.product_count} منتج
-                  </Text>
-                  <Text style={styles.categoryStat}>
-                    {category.total_orders} طلب
-                  </Text>
-                </View>
-              </LinearGradient>
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* ملخص الأداء */}
-        <Animated.View 
-          entering={FadeInUp.delay(1000).duration(600)}
-          style={styles.section}
-        >
-          <View style={styles.sectionHeader}>
-            <BarChart3 size={24} color="#FF9500" />
-            <Text style={styles.sectionTitle}>ملخص الأداء</Text>
-          </View>
-          <View style={styles.performanceSummary}>
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceLabel}>معدل التحويل</Text>
-              <Text style={styles.performanceValue}>68%</Text>
-            </View>
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceLabel}>متوسط وقت التجهيز</Text>
-              <Text style={styles.performanceValue}>15 دقيقة</Text>
-            </View>
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceLabel}>تقييم العملاء</Text>
-              <Text style={styles.performanceValue}>4.8/5</Text>
-            </View>
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceLabel}>معدل الإلغاء</Text>
-              <Text style={styles.performanceValue}>5%</Text>
-            </View>
           </View>
         </Animated.View>
       </ScrollView>
@@ -626,6 +567,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    justifyContent: isSmallScreen ? 'center' : 'space-between',
   },
   statusItem: {
     width: (width - 80) / 2,

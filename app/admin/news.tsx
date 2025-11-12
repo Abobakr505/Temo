@@ -36,9 +36,7 @@ export default function AdminNewsScreen() {
 
   const [formData, setFormData] = useState({
     title_ar: '',
-    title_en: '',
     content_ar: '',
-    content_en: '',
     published_date: new Date(),
     is_active: true,
   });
@@ -108,9 +106,7 @@ export default function AdminNewsScreen() {
     setEditingNews(newsItem);
     setFormData({
       title_ar: newsItem.title_ar,
-      title_en: newsItem.title_en || '',
       content_ar: newsItem.content_ar,
-      content_en: newsItem.content_en || '',
       published_date: new Date(newsItem.published_date),
       is_active: newsItem.is_active,
     });
@@ -147,9 +143,7 @@ export default function AdminNewsScreen() {
   const resetForm = () => {
     setFormData({
       title_ar: '',
-      title_en: '',
       content_ar: '',
-      content_en: '',
       published_date: new Date(),
       is_active: true,
     });
@@ -164,7 +158,7 @@ export default function AdminNewsScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FFCC00']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -263,13 +257,6 @@ export default function AdminNewsScreen() {
                 placeholder="أدخل عنوان الخبر بالعربية"
               />
 
-              <Text style={styles.inputLabel}>عنوان الخبر (إنجليزي)</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.title_en}
-                onChangeText={(text) => setFormData({ ...formData, title_en: text })}
-                placeholder="أدخل عنوان الخبر بالإنجليزية"
-              />
 
               <Text style={styles.inputLabel}>محتوى الخبر (عربي) *</Text>
               <TextInput
@@ -281,15 +268,7 @@ export default function AdminNewsScreen() {
                 numberOfLines={6}
               />
 
-              <Text style={styles.inputLabel}>محتوى الخبر (إنجليزي)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={formData.content_en}
-                onChangeText={(text) => setFormData({ ...formData, content_en: text })}
-                placeholder="أدخل محتوى الخبر بالإنجليزية"
-                multiline
-                numberOfLines={6}
-              />
+
 
               <Text style={styles.inputLabel}>تاريخ النشر</Text>
               <TouchableOpacity

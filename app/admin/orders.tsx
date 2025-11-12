@@ -23,7 +23,6 @@ import {
 import { supabase, Order, OrderItem } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-
 export default function AdminOrdersScreen() {
   const [orders, setOrders] = useState<(Order & { order_items: (OrderItem & { menu_items: any })[] })[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,11 +30,9 @@ export default function AdminOrdersScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
   useEffect(() => {
     loadOrders();
   }, []);
-
   const loadOrders = async () => {
     const { data, error } = await supabase
       .from('orders')
@@ -50,7 +47,6 @@ export default function AdminOrdersScreen() {
         )
       `)
       .order('created_at', { ascending: false });
-
     if (error) {
       console.error('Error loading orders:', error);
       Alert.alert('خطأ', 'فشل في تحميل الطلبات');
@@ -58,13 +54,11 @@ export default function AdminOrdersScreen() {
       setOrders(data || []);
     }
   };
-
   const filteredOrders = orders.filter(order =>
     order.customer_name.includes(searchQuery) ||
     order.customer_phone.includes(searchQuery) ||
     order.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     setIsLoading(true);
     try {
@@ -72,18 +66,16 @@ export default function AdminOrdersScreen() {
         .from('orders')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', orderId);
-
       if (error) throw error;
-
       Alert.alert('نجاح', 'تم تحديث حالة الطلب بنجاح');
-      loadOrders();
+      await loadOrders();
     } catch (error) {
+      console.error('Update error:', error);
       Alert.alert('خطأ', 'فشل في تحديث حالة الطلب');
     } finally {
       setIsLoading(false);
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -102,26 +94,24 @@ export default function AdminOrdersScreen() {
         return '#8E8E93';
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Clock size={16} color="#FF9500" />;
+        return <Clock size={16} color="#ffffffff" />;
       case 'confirmed':
-        return <CheckCircle size={16} color="#007AFF" />;
+        return <CheckCircle size={16} color="#ffffffff" />;
       case 'preparing':
-        return <Clock size={16} color="#5856D6" />;
+        return <Clock size={16} color="#ffffffff" />;
       case 'ready':
-        return <CheckCircle size={16} color="#34C759" />;
+        return <CheckCircle size={16} color="#ffffffff" />;
       case 'delivered':
-        return <Truck size={16} color="#30D158" />;
+        return <Truck size={16} color="#ffffffff" />;
       case 'cancelled':
-        return <XCircle size={16} color="#FF3B30" />;
+        return <XCircle size={16} color="#ffffffff" />;
       default:
-        return <Clock size={16} color="#8E8E93" />;
+        return <Clock size={16} color="#ffffffff" />;
     }
   };
-
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
@@ -140,16 +130,14 @@ export default function AdminOrdersScreen() {
         return status;
     }
   };
-
   const viewOrderDetails = (order: any) => {
     setSelectedOrder(order);
     setIsModalVisible(true);
   };
-
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FFCC00']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -161,7 +149,6 @@ export default function AdminOrdersScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>إدارة الطلبات</Text>
         </View>
-
         <View style={styles.searchContainer}>
           <Search size={20} color="#8E8E93" style={styles.searchIcon} />
           <TextInput
@@ -173,7 +160,6 @@ export default function AdminOrdersScreen() {
           />
         </View>
       </LinearGradient>
-
       <ScrollView style={styles.content}>
         {filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
@@ -200,7 +186,6 @@ export default function AdminOrdersScreen() {
                   </Text>
                 </View>
               </View>
-
               <View style={styles.orderDetails}>
                 <Text style={styles.orderTotal}>
                   الإجمالي: {order.total_amount.toFixed(2)} ج.م
@@ -209,7 +194,6 @@ export default function AdminOrdersScreen() {
                   {new Date(order.created_at).toLocaleDateString('ar-SA')}
                 </Text>
               </View>
-
               <View style={styles.orderActions}>
                 <TouchableOpacity
                   style={styles.viewButton}
@@ -218,7 +202,6 @@ export default function AdminOrdersScreen() {
                   <Eye size={16} color="#007AFF" />
                   <Text style={styles.viewButtonText}>عرض التفاصيل</Text>
                 </TouchableOpacity>
-
                 <View style={styles.statusActions}>
                   {order.status === 'pending' && (
                     <>
@@ -271,7 +254,6 @@ export default function AdminOrdersScreen() {
           ))
         )}
       </ScrollView>
-
       {/* Order Details Modal */}
       <Modal
         visible={isModalVisible}
@@ -284,7 +266,7 @@ export default function AdminOrdersScreen() {
             {selectedOrder && (
               <>
                 <Text style={styles.modalTitle}>تفاصيل الطلب</Text>
-                
+               
                 <ScrollView style={styles.orderDetailsContent}>
                   <View style={styles.detailSection}>
                     <Text style={styles.detailTitle}>معلومات العميل</Text>
@@ -303,7 +285,6 @@ export default function AdminOrdersScreen() {
                       </View>
                     )}
                   </View>
-
                   <View style={styles.detailSection}>
                     <Text style={styles.detailTitle}>عناصر الطلب</Text>
                     {selectedOrder.order_items.map((item: any, index: number) => (
@@ -324,14 +305,12 @@ export default function AdminOrdersScreen() {
                       </Text>
                     </View>
                   </View>
-
                   {selectedOrder.notes && (
                     <View style={styles.detailSection}>
                       <Text style={styles.detailTitle}>ملاحظات</Text>
                       <Text style={styles.notesText}>{selectedOrder.notes}</Text>
                     </View>
                   )}
-
                   <View style={styles.detailSection}>
                     <Text style={styles.detailTitle}>معلومات الطلب</Text>
                     <View style={styles.detailRow}>
@@ -355,7 +334,6 @@ export default function AdminOrdersScreen() {
                     </View>
                   </View>
                 </ScrollView>
-
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setIsModalVisible(false)}
@@ -370,7 +348,6 @@ export default function AdminOrdersScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

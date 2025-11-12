@@ -131,7 +131,7 @@ export default function AdminDashboard() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FFCC00']}
         style={styles.header}
       >
         <Animated.View entering={FadeInDown.duration(600)}>
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <LinearGradient
-                colors={['#FF9500', '#FF6B00']}
+                colors={['#FF9500', '#FFCC00']}
                 style={styles.statGradient}
               >
                 <ShoppingCart size={24} color="#FFFFFF" />

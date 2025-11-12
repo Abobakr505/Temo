@@ -45,7 +45,7 @@ export default function HomeScreen() {
       setIsLoading(true);
       const [offersData, featuredData, categoriesData, newsData] = await Promise.all([
         supabase.from('offers').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(3),
-        supabase.from('menu_items').select('*').eq('is_featured', true).eq('is_available', true).limit(4),
+        supabase.from('menu_items').select('*').eq('is_available', true).eq('is_available', true).limit(4),
         supabase.from('categories').select('*').order('display_order'),
         supabase.from('news').select('*').eq('is_active', true).order('published_date', { ascending: false }).limit(3)
       ]);
@@ -206,12 +206,23 @@ export default function HomeScreen() {
                   activeOpacity={0.8}
                 >
                   <View style={styles.featuredItemImage}>
+                    <View style={styles.featuredItemImage}>
+                  {item.image_url ? (
+                    <Image
+                      source={{ uri: item.image_url }}
+                      style={styles.imagePlaceholder} // نفس حجم ال placeholder
+                      resizeMode="cover"
+                    />
+                  ) : (
                     <LinearGradient
                       colors={['#FFF5E6', '#FFE6CC']}
                       style={styles.imagePlaceholder}
                     >
                       <Text style={styles.placeholderEmoji}>🍟</Text>
                     </LinearGradient>
+                  )}
+                </View>
+
                   </View>
                   <View style={styles.featuredItemInfo}>
                     <Text style={styles.featuredItemName} numberOfLines={2}>
@@ -266,7 +277,7 @@ export default function HomeScreen() {
                     colors={['#FFF5E6', '#FFE6CC']}
                     style={styles.categoryImage}
                   >
-                    <Text style={styles.categoryEmoji}>🍔</Text>
+                    <Text style={styles.categoryEmoji}>🍟</Text>
                   </LinearGradient>
                   <Text style={styles.categoryName}>{category.name_ar}</Text>
                 </TouchableOpacity>
@@ -531,6 +542,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#FFFFFF',
+    textAlign:'center'
   },
   categoriesScroll: {
     paddingRight: 20,

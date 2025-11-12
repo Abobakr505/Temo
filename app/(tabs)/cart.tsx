@@ -149,7 +149,7 @@ export default function CartScreen() {
             onPress={() => window.location.href = '/menu'}
           >
             <LinearGradient
-              colors={['#FF9500', '#FF6B00']}
+              colors={['#FF9500', '#FF9500']}
               style={styles.browseButtonGradient}
             >
               <Text style={styles.browseButtonText}>تصفح المنتجات</Text>
@@ -303,7 +303,7 @@ export default function CartScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#FF9500', '#FF6B00']}
+              colors={['#FF9500', '#FF9500']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.checkoutGradient}

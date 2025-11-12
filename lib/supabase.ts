@@ -25,12 +25,9 @@ export interface AdminUser {
 export interface Category {
   id: string;
   name_ar: string;
-  name_en?: string;
   description_ar?: string;
-  description_en?: string;
   display_order: number;
   is_active: boolean;
-  image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,9 +36,7 @@ export interface MenuItem {
   id: string;
   category_id: string;
   name_ar: string;
-  name_en?: string;
   description_ar?: string;
-  description_en?: string;
   price: number;
   is_available: boolean;
   is_featured: boolean;
@@ -58,9 +53,7 @@ export interface MenuItem {
 export interface Offer {
   id: string;
   title_ar: string;
-  title_en?: string;
   description_ar?: string;
-  description_en?: string;
   discount_percentage: number;
   start_date: string;
   end_date: string;
@@ -73,9 +66,7 @@ export interface Offer {
 export interface News {
   id: string;
   title_ar: string;
-  title_en?: string;
   content_ar: string;
-  content_en?: string;
   published_date: string;
   is_active: boolean;
   image_url?: string;

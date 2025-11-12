@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -18,10 +19,40 @@ import {
   Trash2,
   Package,
   ArrowLeft,
+  Camera,
+  Image as ImageIcon,
+  X,
 } from 'lucide-react-native';
-import { supabase, MenuItem, Category } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from "expo-file-system/legacy";
+
+type Category = {
+  id: string;
+  name_ar: string;
+  name_en?: string;
+  display_order: number;
+  image_url?: string;
+  created_at: string;
+};
+
+type MenuItem = {
+  id: string;
+  name_ar: string;
+  name_en?: string;
+  description_ar?: string;
+  description_en?: string;
+  price: number;
+  category_id: string;
+  is_available: boolean;
+  is_featured: boolean;
+  display_order: number;
+  image_url?: string;
+  created_at: string;
+  categories?: Category;
+};
 
 export default function AdminProductsScreen() {
   const [products, setProducts] = useState<MenuItem[]>([]);
@@ -30,55 +61,196 @@ export default function AdminProductsScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<MenuItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const router = useRouter();
 
-  // حالة النموذج
   const [formData, setFormData] = useState({
     name_ar: '',
-    name_en: '',
     description_ar: '',
-    description_en: '',
     price: '',
     category_id: '',
     is_available: true,
     is_featured: false,
     display_order: '0',
+    image_url: '',
   });
 
   useEffect(() => {
     loadProducts();
     loadCategories();
+    requestPermissions();
   }, []);
 
-  const loadProducts = async () => {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*, categories(name_ar)')
-      .order('display_order');
+  const requestPermissions = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (status !== 'granted' || cameraStatus.status !== 'granted') {
+      Alert.alert('خطأ في الصلاحيات', 'يجب منح صلاحية الوصول إلى الصور والكاميرا');
+    }
+  };
 
-    if (error) {
+  const loadProducts = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select(`
+          *,
+          categories (
+            name_ar
+          )
+        `)
+        .order('display_order');
+
+      if (error) {
+        console.error('Error loading products:', error);
+        Alert.alert('خطأ', 'فشل في تحميل المنتجات');
+      } else {
+        setProducts(data || []);
+        console.log('Products loaded:', data?.length);
+      }
+    } catch (error) {
+      console.error('Error:', error);
       Alert.alert('خطأ', 'فشل في تحميل المنتجات');
-    } else {
-      setProducts(data || []);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const loadCategories = async () => {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('display_order');
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('display_order');
 
-    if (error) {
+      if (error) {
+        console.error('Error loading categories:', error);
+        Alert.alert('خطأ', 'فشل في تحميل الفئات');
+      } else {
+        setCategories(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
       Alert.alert('خطأ', 'فشل في تحميل الفئات');
-    } else {
-      setCategories(data || []);
     }
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('خطأ', 'فشل في اختيار الصورة');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('خطأ', 'فشل في التقاط الصورة');
+    }
+  };
+
+  const uploadImage = async (imageUri: string) => {
+  try {
+    setUploadingImage(true);
+
+    const fileExt = imageUri.split(".").pop()?.toLowerCase() || "jpg";
+    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+    const filePath = fileName;
+
+    // 🔹 قراءة الملف كـ Blob (يعمل على الويب والجوال)
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+
+    // 🔹 رفع الصورة إلى Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, blob, {
+        contentType: `image/${fileExt}`,
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      throw uploadError;
+    }
+
+    // 🔹 الحصول على الرابط العام للصورة
+    const { data: urlData } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(filePath);
+
+    if (urlData?.publicUrl) {
+      setFormData((prev) => ({ ...prev, image_url: urlData.publicUrl }));
+      setSelectedImage(urlData.publicUrl);
+      Alert.alert("نجاح", "تم رفع الصورة بنجاح");
+      console.log("✅ Image uploaded:", urlData.publicUrl);
+    } else {
+      throw new Error("لم يتم إنشاء رابط عام للصورة");
+    }
+
+  } catch (error: any) {
+    console.error("Error uploading image:", error);
+    Alert.alert("خطأ", `فشل في رفع الصورة: ${error.message}`);
+  } finally {
+    setUploadingImage(false);
+  }
+};
+
+
+  const removeImage = async () => {
+    if (formData.image_url) {
+      try {
+        // استخراج اسم الملف من الرابط
+        const fileName = formData.image_url.split('/').pop();
+        if (fileName) {
+          const { error } = await supabase.storage
+            .from('product-images')
+            .remove([fileName]);
+          
+          if (error) {
+            console.error('Error deleting image from storage:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error removing image:', error);
+      }
+    }
+    
+    setSelectedImage(null);
+    setFormData(prev => ({ ...prev, image_url: '' }));
   };
 
   const filteredProducts = products.filter(product =>
     product.name_ar.includes(searchQuery) ||
-    product.name_en?.toLowerCase().includes(searchQuery.toLowerCase())
+    (product.name_en && product.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleSaveProduct = async () => {
@@ -87,16 +259,22 @@ export default function AdminProductsScreen() {
       return;
     }
 
-    setIsLoading(true);
+    setFormLoading(true);
     try {
       const productData = {
-        ...formData,
+        name_ar: formData.name_ar,
+        description_ar: formData.description_ar,
         price: parseFloat(formData.price),
-        display_order: parseInt(formData.display_order),
+        category_id: formData.category_id,
+        is_available: formData.is_available,
+        is_featured: formData.is_featured,
+        display_order: parseInt(formData.display_order) || 0,
+        image_url: formData.image_url,
       };
 
+      console.log('Saving product with data:', productData);
+
       if (editingProduct) {
-        // تحديث المنتج
         const { error } = await supabase
           .from('menu_items')
           .update(productData)
@@ -105,7 +283,6 @@ export default function AdminProductsScreen() {
         if (error) throw error;
         Alert.alert('نجاح', 'تم تحديث المنتج بنجاح');
       } else {
-        // إضافة منتج جديد
         const { error } = await supabase
           .from('menu_items')
           .insert([productData]);
@@ -117,9 +294,10 @@ export default function AdminProductsScreen() {
       resetForm();
       loadProducts();
     } catch (error) {
-      Alert.alert('خطأ', 'فشل في حفظ المنتج');
+      console.error('Error saving product:', error);
+      Alert.alert('خطأ', `فشل في حفظ المنتج: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setFormLoading(false);
     }
   };
 
@@ -127,19 +305,19 @@ export default function AdminProductsScreen() {
     setEditingProduct(product);
     setFormData({
       name_ar: product.name_ar,
-      name_en: product.name_en || '',
       description_ar: product.description_ar || '',
-      description_en: product.description_en || '',
       price: product.price.toString(),
       category_id: product.category_id,
       is_available: product.is_available,
       is_featured: product.is_featured,
       display_order: product.display_order.toString(),
+      image_url: product.image_url || '',
     });
+    setSelectedImage(product.image_url || null);
     setIsModalVisible(true);
   };
 
-  const handleDelete = (product: MenuItem) => {
+  const handleDelete = async (product: MenuItem) => {
     Alert.alert(
       'حذف المنتج',
       `هل أنت متأكد من حذف ${product.name_ar}؟`,
@@ -149,16 +327,28 @@ export default function AdminProductsScreen() {
           text: 'حذف',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabase
-              .from('menu_items')
-              .delete()
-              .eq('id', product.id);
+            try {
+              // حذف الصورة من Storage إذا كانت موجودة
+              if (product.image_url) {
+                const fileName = product.image_url.split('/').pop();
+                if (fileName) {
+                  await supabase.storage
+                    .from('product-images')
+                    .remove([fileName]);
+                }
+              }
 
-            if (error) {
-              Alert.alert('خطأ', 'فشل في حذف المنتج');
-            } else {
+              const { error } = await supabase
+                .from('menu_items')
+                .delete()
+                .eq('id', product.id);
+
+              if (error) throw error;
               Alert.alert('نجاح', 'تم حذف المنتج بنجاح');
               loadProducts();
+            } catch (error) {
+              console.error('Error deleting product:', error);
+              Alert.alert('خطأ', 'فشل في حذف المنتج');
             }
           },
         },
@@ -169,23 +359,23 @@ export default function AdminProductsScreen() {
   const resetForm = () => {
     setFormData({
       name_ar: '',
-      name_en: '',
       description_ar: '',
-      description_en: '',
       price: '',
       category_id: '',
       is_available: true,
       is_featured: false,
       display_order: '0',
+      image_url: '',
     });
     setEditingProduct(null);
+    setSelectedImage(null);
     setIsModalVisible(false);
   };
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FFCC00']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -217,7 +407,12 @@ export default function AdminProductsScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content}>
-        {filteredProducts.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF9500" />
+            <Text style={styles.loadingText}>جاري تحميل المنتجات...</Text>
+          </View>
+        ) : filteredProducts.length === 0 ? (
           <View style={styles.emptyState}>
             <Package size={80} color="#E5E5EA" />
             <Text style={styles.emptyStateText}>لا توجد منتجات</Text>
@@ -229,14 +424,38 @@ export default function AdminProductsScreen() {
               entering={FadeInUp.delay(index * 50).duration(500)}
               style={styles.productCard}
             >
+              <View style={styles.productImageContainer}>
+                {product.image_url ? (
+                  <Image 
+                    source={{ uri: product.image_url }} 
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.placeholderImage}>
+                    <Text style={styles.placeholderEmoji}>🍟</Text>
+                  </View>
+                )}
+              </View>
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{product.name_ar}</Text>
                 <Text style={styles.productCategory}>
-                  {product.categories?.name_ar}
+                  {product.categories?.name_ar || 'بدون فئة'}
                 </Text>
                 <Text style={styles.productPrice}>
                   {product.price.toFixed(2)} ج.م
                 </Text>
+                <View style={styles.productStatus}>
+                  <Text style={[
+                    styles.statusText,
+                    !product.is_available && styles.statusDisabled
+                  ]}>
+                    {product.is_available ? 'متاح' : 'غير متاح'}
+                  </Text>
+                  {product.is_featured && (
+                    <Text style={styles.featuredText}>مميز</Text>
+                  )}
+                </View>
               </View>
               <View style={styles.productActions}>
                 <TouchableOpacity
@@ -271,20 +490,59 @@ export default function AdminProductsScreen() {
             </Text>
 
             <ScrollView style={styles.form}>
+              {/* قسم الصورة */}
+              <View style={styles.imageSection}>
+                <Text style={styles.inputLabel}>صورة المنتج</Text>
+                <View style={styles.imageUploadContainer}>
+                  {selectedImage ? (
+                    <View style={styles.imagePreviewContainer}>
+                      <Image 
+                        source={{ uri: selectedImage }} 
+                        style={styles.imagePreview}
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity 
+                        style={styles.removeImageButton}
+                        onPress={removeImage}
+                      >
+                        <X size={20} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.uploadPlaceholder}>
+                      {uploadingImage ? (
+                        <ActivityIndicator size="small" color="#FF9500" />
+                      ) : (
+                        <>
+                          <Camera size={40} color="#8E8E93" />
+                          <Text style={styles.uploadText}>اختر صورة للمنتج</Text>
+                          <View style={styles.imageButtons}>
+                            <TouchableOpacity 
+                              style={styles.imageButton}
+                              onPress={pickImage}
+                            >
+                              <Text style={styles.imageButtonText}>من المعرض</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              style={styles.imageButton}
+                              onPress={takePhoto}
+                            >
+                              <Text style={styles.imageButtonText}>التقاط صورة</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </View>
+
               <Text style={styles.inputLabel}>اسم المنتج (عربي) *</Text>
               <TextInput
                 style={styles.input}
                 value={formData.name_ar}
                 onChangeText={(text) => setFormData({ ...formData, name_ar: text })}
                 placeholder="أدخل اسم المنتج بالعربية"
-              />
-
-              <Text style={styles.inputLabel}>اسم المنتج (إنجليزي)</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.name_en}
-                onChangeText={(text) => setFormData({ ...formData, name_en: text })}
-                placeholder="أدخل اسم المنتج بالإنجليزية"
               />
 
               <Text style={styles.inputLabel}>الوصف (عربي)</Text>
@@ -311,6 +569,7 @@ export default function AdminProductsScreen() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.categoriesScroll}
+                contentContainerStyle={styles.categoriesContent}
               >
                 {categories.map((category) => (
                   <TouchableOpacity
@@ -383,15 +642,16 @@ export default function AdminProductsScreen() {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={resetForm}
+                disabled={formLoading}
               >
                 <Text style={styles.cancelButtonText}>إلغاء</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleSaveProduct}
-                disabled={isLoading}
+                disabled={formLoading}
               >
-                {isLoading ? (
+                {formLoading ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={styles.saveButtonText}>
@@ -432,7 +692,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#FFFFFF',
-    fontFamily: 'GraphicSchool-Regular',
+   fontFamily: 'GraphicSchool-Regular',
+
   },
   addButton: {
     padding: 8,
@@ -452,12 +713,26 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#1C1C1E',
-    fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
+    fontFamily: 'IBMPlexSansArabic-Medium',
+
+
   },
   content: {
     flex: 1,
     padding: 20,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   emptyState: {
     alignItems: 'center',
@@ -467,9 +742,9 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     color: '#8E8E93',
-    fontFamily: 'IBMPlexSansArabic-Medium',
     marginTop: 16,
     textAlign: 'center',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   productCard: {
     flexDirection: 'row',
@@ -484,6 +759,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  productImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderEmoji: {
+    fontSize: 24,
+  },
   productInfo: {
     flex: 1,
   },
@@ -491,23 +787,43 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#1C1C1E',
-    fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'right',
     marginBottom: 4,
+    fontFamily: 'IBMPlexSansArabic-Bold'
   },
   productCategory: {
     fontSize: 14,
     color: '#8E8E93',
-    fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
     marginBottom: 4,
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   productPrice: {
     fontSize: 16,
     fontWeight: '700',
     color: '#FF9500',
-    fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'right',
+    marginBottom: 4,
+    fontFamily: 'IBMPlexSansArabic-Medium'
+  },
+  productStatus: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#34C759',
+    fontWeight: '600',
+    fontFamily: 'IBMPlexSansArabic-Medium'
+  },
+  statusDisabled: {
+    color: '#FF3B30',
+  },
+  featuredText: {
+    fontSize: 12,
+    color: '#FF9500',
+    fontWeight: '600',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   productActions: {
     flexDirection: 'row',
@@ -538,19 +854,83 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
-    fontFamily: 'IBMPlexSansArabic-Bold',
     textAlign: 'center',
+    fontFamily: 'IBMPlexSansArabic-Bold'
   },
   form: {
     maxHeight: 400,
+  },
+  imageSection: {
+    marginBottom: 16,
+  },
+  imageUploadContainer: {
+    marginBottom: 16,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadPlaceholder: {
+    width: 120,
+    height: 120,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    padding: 16,
+  },
+  uploadText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#8E8E93',
+    textAlign: 'center',
+    fontFamily: 'IBMPlexSansArabic-Medium'
+  },
+  imageButtons: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  imageButton: {
+    backgroundColor: '#FF9500',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  imageButtonText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 8,
-    fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   input: {
     backgroundColor: '#F9F9F9',
@@ -561,15 +941,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
     marginBottom: 16,
-    fontFamily: 'IBMPlexSansArabic-Medium',
     textAlign: 'right',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   textArea: {
     height: 80,
     textAlignVertical: 'top',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   categoriesScroll: {
     marginBottom: 16,
+  },
+  categoriesContent: {
+    flexDirection: 'row-reverse',
   },
   categoryChip: {
     paddingHorizontal: 16,
@@ -588,7 +972,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1C1C1E',
-    fontFamily: 'IBMPlexSansArabic-Medium',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   categoryChipTextActive: {
     color: '#FFFFFF',
@@ -603,7 +987,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    fontFamily: 'IBMPlexSansArabic-Medium',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
   switch: {
     width: 50,
@@ -642,7 +1026,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#8E8E93',
-    fontFamily: 'IBMPlexSansArabic-Medium',
   },
   saveButton: {
     flex: 1,
@@ -655,6 +1038,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: 'IBMPlexSansArabic-Bold',
+    fontFamily: 'IBMPlexSansArabic-Medium'
   },
 });

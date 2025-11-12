@@ -37,9 +37,7 @@ export default function AdminOffersScreen() {
 
   const [formData, setFormData] = useState({
     title_ar: '',
-    title_en: '',
     description_ar: '',
-    description_en: '',
     discount_percentage: '',
     start_date: new Date(),
     end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 days
@@ -118,9 +116,7 @@ export default function AdminOffersScreen() {
     setEditingOffer(offer);
     setFormData({
       title_ar: offer.title_ar,
-      title_en: offer.title_en || '',
       description_ar: offer.description_ar || '',
-      description_en: offer.description_en || '',
       discount_percentage: offer.discount_percentage.toString(),
       start_date: new Date(offer.start_date),
       end_date: new Date(offer.end_date),
@@ -159,9 +155,7 @@ export default function AdminOffersScreen() {
   const resetForm = () => {
     setFormData({
       title_ar: '',
-      title_en: '',
       description_ar: '',
-      description_en: '',
       discount_percentage: '',
       start_date: new Date(),
       end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -178,7 +172,7 @@ export default function AdminOffersScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF9500', '#FF6B00']}
+        colors={['#FF9500', '#FFCC00']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -223,7 +217,7 @@ export default function AdminOffersScreen() {
               style={styles.offerCard}
             >
               <LinearGradient
-                colors={['#FF9500', '#FF6B00']}
+                colors={['#FF9500', '#FFCC00']}
                 style={styles.offerGradient}
               >
                 <View style={styles.offerHeader}>
@@ -287,13 +281,7 @@ export default function AdminOffersScreen() {
                 placeholder="أدخل عنوان العرض بالعربية"
               />
 
-              <Text style={styles.inputLabel}>عنوان العرض (إنجليزي)</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.title_en}
-                onChangeText={(text) => setFormData({ ...formData, title_en: text })}
-                placeholder="أدخل عنوان العرض بالإنجليزية"
-              />
+
 
               <Text style={styles.inputLabel}>الوصف (عربي)</Text>
               <TextInput

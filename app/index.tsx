@@ -7,6 +7,7 @@ import {
   Image,
   Dimensions,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -170,8 +171,15 @@ export default function WelcomeScreen() {
             style={styles.footer}
           >
             <Text style={styles.footerText}>
-              صنع بحب ❤️ من أبوبكر حسن
+              صنع بحب ❤️ من 
             </Text>
+            <TouchableOpacity
+                      onPress={() => {
+                        Linking.openURL('https://bakrhasan.netlify.app/');
+                      }}
+                    >
+                      <Text style={styles.footerDev}>ابوبكر حسن </Text>
+                    </TouchableOpacity>
           </Animated.View>
         </View>
       </LinearGradient>
@@ -313,11 +321,21 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 20,
+        alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row-reverse',
+    gap: 4,
   },
   footerText: {
     fontSize: 14,
     color: '#FFFFFF',
     opacity: 0.8,
     fontFamily: 'IBMPlexSansArabic-Medium',
+  },
+  
+  footerDev: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    fontFamily: "GraphicSchool-Regular"
   },
 });
