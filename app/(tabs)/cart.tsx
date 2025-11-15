@@ -217,7 +217,7 @@ export default function CartScreen() {
             onPress={() => router.push('/menu')}
           >
             <LinearGradient
-              colors={['#FFCC00', '#FF9500']}
+              colors={['#FF9500', '#FF6B00']}
               style={styles.browseButtonGradient}
             >
               <Text style={styles.browseButtonText}>تصفح المنتجات</Text>

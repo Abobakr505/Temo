@@ -23,6 +23,7 @@ import Animated, {
   FadeIn,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 
@@ -118,6 +119,15 @@ export default function HomeScreen() {
       type: type
     };
     addToCart(cartItem);
+          // استبدال Alert بـ Toast
+          Toast.show({
+            type: 'success',
+            text1: 'تم الإضافة إلى السلة 🎉',
+            text2: `تم إضافة ${item.name_ar} إلى السلة`,
+            position: 'top',
+            visibilityTime: 2500,
+            onPress: () => router.push('/cart'), // لو ضغط المستخدم ينقله للسلة
+          });
   };
 
   const getItemImage = (item: MenuItem | Drink) => {
@@ -322,7 +332,7 @@ export default function HomeScreen() {
       {/* العروض الخاصة */}
       {offers.length > 0 && (
         <Animated.View entering={FadeInUp.delay(200).duration(600)} style={styles.section}>
-          <TouchableOpacity onPress={() => router.push('/news')}>
+          <TouchableOpacity onPress={() => router.push('/events')}>
             <View style={styles.sectionHeader}>
               <Tag size={24} color="#FF9500" />
               <Text style={styles.sectionTitle}>العروض الخاصة</Text>
@@ -420,7 +430,7 @@ export default function HomeScreen() {
               >
                 <TouchableOpacity
                   style={styles.newsCard}
-                  onPress={() => router.push('/news')}
+                  onPress={() => router.push('/events')}
                   activeOpacity={0.8}
                 >
                   <LinearGradient

@@ -205,12 +205,6 @@ export default function ProductDetailsScreen() {
           {/* معلومات إضافية للمشروبات */}
           {type === 'drink' && (
             <View style={styles.drinkInfo}>
-              {item.calories && (
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>السعرات الحرارية:</Text>
-                  <Text style={styles.infoValue}>{item.calories} سعرة</Text>
-                </View>
-              )}
               {item.size && (
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>الحجم:</Text>
@@ -448,10 +442,10 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   titleRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 12,
+
   },
   name: {
     fontSize: 24,
@@ -469,6 +463,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 28,
     fontFamily: 'IBMPlexSansArabic-Bold',
+        textAlign: 'left',
   },
   currency: {
     fontSize: 16,

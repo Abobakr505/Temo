@@ -4,10 +4,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, Coffee, Utensils } from 'lucide-react-native';
-import { supabase, Category, MenuItem, DrinkCategory, Drink } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useCart } from '@/contexts/CartContext';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,44 @@ const { width } = Dimensions.get('window');
 const isSmallScreen = width < 400;
 
 type TabType = 'food' | 'drinks';
+
+// تعريف الأنواع المحلية
+type Category = {
+  id: string;
+  name_ar: string;
+  display_order: number;
+};
+
+type MenuItem = {
+  id: string;
+  name_ar: string;
+  description_ar?: string;
+  price: number;
+  image_url?: string;
+  category_id: string;
+  is_available: boolean;
+  display_order: number;
+};
+
+type DrinkCategory = {
+  id: string;
+  name_ar: string;
+  is_active: boolean;
+  display_order: number;
+};
+
+type Drink = {
+  id: string;
+  name_ar: string;
+  description_ar?: string;
+  price: number;
+  image_url?: string;
+  category_id: string;
+  is_available: boolean;
+  display_order: number;
+  size?: string;
+  drink_categories?: DrinkCategory;
+};
 
 export default function MenuScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -59,13 +98,9 @@ export default function MenuScreen() {
       if (drinkCategoriesData.data) setDrinkCategories(drinkCategoriesData.data);
       if (drinksData.data) setDrinks(drinksData.data);
 
-      // إذا لم تكن هناك بيانات، عرض رسالة
-      if (!categoriesData.data?.length && !menuItemsData.data?.length && 
-          !drinkCategoriesData.data?.length && !drinksData.data?.length) {
-        console.log('لا توجد بيانات في قاعدة البيانات');
-      }
     } catch (error) {
       console.error('Error loading menu data:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء تحميل البيانات');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -75,6 +110,37 @@ export default function MenuScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleAddToCart = (item: MenuItem | Drink, type: 'food' | 'drink') => {
+    try {
+      console.log('Adding item to cart:', item, type);
+      
+      if (!item || !item.id) {
+        console.error('Invalid item:', item);
+        Alert.alert('خطأ', 'عنصر غير صحيح');
+        return;
+      }
+
+      addToCart(item, type);
+      
+      // تأكيد بصري للإضافة
+      Alert.alert('تم الإضافة', `تم إضافة ${item.name_ar} إلى السلة`);
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء الإضافة إلى السلة');
+    }
+  };
+
+  const openProductDetails = (item: MenuItem | Drink, type: 'food' | 'drink') => {
+    router.push({
+      pathname: `/product/${item.id}`,
+      params: { 
+        item: JSON.stringify(item),
+        type: type
+      },
+    });
   };
 
   const filteredFoodItems = menuItems.filter((item) => {
@@ -88,24 +154,6 @@ export default function MenuScreen() {
     const matchesSearch = !searchQuery || item.name_ar.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  const openProductDetails = (item: MenuItem | Drink, type: 'food' | 'drink') => {
-    router.push({
-      pathname: `/product/${item.id}`,
-      params: { 
-        item: JSON.stringify(item),
-        type: type
-      },
-    });
-  };
-
-  const addItemToCart = (item: MenuItem | Drink, type: 'food' | 'drink') => {
-    const cartItem = {
-      ...item,
-      type: type
-    };
-    addToCart(cartItem);
-  };
 
   if (isLoading) {
     return (
@@ -159,14 +207,6 @@ export default function MenuScreen() {
         style={styles.menuScroll}
         contentContainerStyle={styles.menuContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#FF9500']}
-            tintColor="#FF9500"
-          />
-        }
       >
         {filteredFoodItems.length === 0 ? (
           <View style={styles.emptyState}>
@@ -240,7 +280,7 @@ export default function MenuScreen() {
                         style={styles.addToCartButton}
                         onPress={(e) => {
                           e.stopPropagation();
-                          addItemToCart(item, 'food');
+                          handleAddToCart(item, 'food');
                         }}
                       >
                         <LinearGradient
@@ -301,14 +341,6 @@ export default function MenuScreen() {
         style={styles.menuScroll}
         contentContainerStyle={styles.menuContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#FF9500']}
-            tintColor="#FF9500"
-          />
-        }
       >
         {filteredDrinkItems.length === 0 ? (
           <View style={styles.emptyState}>
@@ -370,7 +402,6 @@ export default function MenuScreen() {
                       {item.name_ar}
                     </Text>
                     
-                    {/* عرض حجم المشروب إذا كان متوفراً */}
                     {item.size && (
                       <Text style={styles.drinkSize}>
                         {item.size === 'small' ? 'صغير' : 
@@ -384,7 +415,6 @@ export default function MenuScreen() {
                       </Text>
                     )}
                     
-                    
                     <View style={styles.menuItemFooter}>
                       <Text style={styles.drinkPrice}>
                         {item.price.toFixed(2)} ج.م
@@ -393,7 +423,7 @@ export default function MenuScreen() {
                         style={styles.addToCartButton}
                         onPress={(e) => {
                           e.stopPropagation();
-                          addItemToCart(item, 'drink');
+                          handleAddToCart(item, 'drink');
                         }}
                       >
                         <LinearGradient
@@ -438,7 +468,6 @@ export default function MenuScreen() {
           </View>
         </Animated.View>
 
-        {/* تبويبات الطعام والمشروبات */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'food' && styles.activeTab]}
@@ -462,7 +491,6 @@ export default function MenuScreen() {
         </View>
       </LinearGradient>
 
-      {/* التصحيح الرئيسي: وضع RefreshControl في ScrollView الرئيسي */}
       <ScrollView 
         style={styles.content}
         refreshControl={

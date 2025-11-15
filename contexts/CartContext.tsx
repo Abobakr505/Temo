@@ -1,9 +1,48 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { CartItem, MenuItem } from '@/lib/supabase';
+
+// أنواع البيانات الأساسية
+export type CartItem = {
+  id: string;
+  name_ar: string;
+  description_ar?: string;
+  price: number;
+  image_url?: string;
+  quantity: number;
+  type: 'food' | 'drink';
+  size?: string;
+};
+
+// نوع للعناصر القادمة من Supabase (مع الحقول الإضافية)
+type SupabaseMenuItem = {
+  id: string;
+  name_ar: string;
+  description_ar?: string;
+  price: number;
+  image_url?: string;
+  category_id: string;
+  is_available: boolean;
+  display_order: number;
+  created_at?: string;
+  is_featured?: boolean;
+};
+
+type SupabaseDrink = {
+  id: string;
+  name_ar: string;
+  description_ar?: string;
+  price: number;
+  image_url?: string;
+  category_id: string;
+  is_available: boolean;
+  display_order: number;
+  size?: string;
+  drink_categories?: any;
+  created_at?: string;
+};
 
 type CartContextType = {
   cart: CartItem[];
-  addToCart: (item: MenuItem) => void;
+  addToCart: (item: SupabaseMenuItem | SupabaseDrink, type: 'food' | 'drink') => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -16,17 +55,48 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (item: SupabaseMenuItem | SupabaseDrink, type: 'food' | 'drink') => {
+    console.log('Adding to cart - raw item:', item);
+    
+    if (!item || !item.id) {
+      console.error('Invalid item:', item);
+      return;
+    }
+
+    // إنشاء كائن CartItem نظيف بدون الحقول الإضافية
+    const cleanItem: CartItem = {
+      id: item.id,
+      name_ar: item.name_ar,
+      description_ar: item.description_ar,
+      price: Number(item.price),
+      image_url: item.image_url,
+      quantity: 1,
+      type: type,
+      size: (item as SupabaseDrink).size
+    };
+
+    console.log('Clean cart item:', cleanItem);
+
     setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
-      if (existingItem) {
-        return prevCart.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
+      const existingItemIndex = prevCart.findIndex(
+        (cartItem) => cartItem.id === cleanItem.id && cartItem.type === cleanItem.type
+      );
+
+      if (existingItemIndex !== -1) {
+        // العنصر موجود - زيادة الكمية
+        const updatedCart = [...prevCart];
+        updatedCart[existingItemIndex] = {
+          ...updatedCart[existingItemIndex],
+          quantity: updatedCart[existingItemIndex].quantity + 1
+        };
+        console.log('Updated cart (existing item):', updatedCart);
+        return updatedCart;
+      } else {
+        // عنصر جديد - إضافته
+        const newCart = [...prevCart, cleanItem];
+        console.log('Updated cart (new item):', newCart);
+        return newCart;
       }
-      return [...prevCart, { ...item, quantity: 1 }];
     });
   };
 
@@ -51,25 +121,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotalPrice = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cart.reduce((total, item) => {
+      const itemTotal = item.price * item.quantity;
+      return total + (isNaN(itemTotal) ? 0 : itemTotal);
+    }, 0);
   };
 
   const getTotalItems = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
+    return cart.reduce((total, item) => {
+      return total + (isNaN(item.quantity) ? 0 : item.quantity);
+    }, 0);
+  };
+
+  const value: CartContextType = {
+    cart,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getTotalPrice,
+    getTotalItems,
   };
 
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        getTotalPrice,
-        getTotalItems,
-      }}
-    >
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );
